@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F3F4F6;
+        }
+        .invoice-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        input[type="text"], input[type="number"], input[type="date"], textarea {
+            border-radius: 0.5rem;
+            border: 1px solid #D1D5DB;
+            padding: 0.5rem;
+            transition: border-color 0.2s;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #2563EB;
+        }
+        .table-cell-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            padding: 0.25rem;
+            text-align: right;
+        }
+        .table-cell-input:focus {
+            outline: 1px solid #3B82F6;
+            border-radius: 0.25rem;
+        }
+        .item-row:hover {
+            background-color: #F9FAFB;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <!-- Main Container -->
+    <div class="flex flex-col lg:flex-row gap-8">
+
+        <!-- Invoice Preview Section -->
+        <div id="invoice-preview" class="flex-grow w-full lg:w-3/4 bg-white rounded-lg p-6 sm:p-12 shadow-md">
+            <!-- Header -->
+            <div class="flex justify-between items-start mb-10">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-2xl">
+                        A
+                    </div>
+                    <div class="text-3xl font-bold text-gray-800">INVOICE</div>
+                </div>
+                <div class="flex flex-col items-end">
+                    <div class="text-sm text-gray-500">Invoice #</div>
+                    <input type="text" id="invoice-number" value="2" class="w-24 text-right font-bold text-lg text-gray-800 border-b border-gray-300 focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <!-- Company and Client Info -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                <!-- Company Details -->
+                <div class="space-y-2">
+                    <p class="font-semibold text-gray-700">From</p>
+                    <textarea id="from-company" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Your Company Name&#10;Address&#10;City, Postal Code&#10;Phone&#10;Email">FORLIANCE GMBH
+Eiffestr. 20
+5319 Bonn, Germany
+Email:
+billing@forliance.com</textarea>
+                </div>
+                <!-- Client Details -->
+                <div class="space-y-2">
+                    <p class="font-semibold text-gray-700">Bill To</p>
+                    <textarea id="bill-to" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Client Name&#10;Address&#10;City, Postal Code&#10;Phone&#10;Email">Adolfo Andrés Hincapié García
+Legal Address: ALL 34 #88A-41, Torre 7,
+Los Cámbulos, Colombia,
+Postal Code: 050032
+Phone: +57 3507439527
+Email: andres.hincapie.ext@forliance.com</textarea>
+                </div>
+            </div>
+
+            <!-- Dates and PO -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+                <div class="flex flex-col">
+                    <label for="invoice-date" class="text-gray-500 text-sm">Date</label>
+                    <input type="date" id="invoice-date" class="border border-gray-300 p-2 rounded-lg text-gray-600">
+                </div>
+                <div class="flex flex-col">
+                    <label for="payment-terms" class="text-gray-500 text-sm">Payment Terms</label>
+                    <input type="text" id="payment-terms" class="border border-gray-300 p-2 rounded-lg text-gray-600">
+                </div>
+                <div class="flex flex-col">
+                    <label for="due-date" class="text-gray-500 text-sm">Due Date</label>
+                    <input type="date" id="due-date" class="border border-gray-300 p-2 rounded-lg text-gray-600">
+                </div>
+                <div class="flex flex-col">
+                    <label for="po-number" class="text-gray-500 text-sm">PO Number</label>
+                    <input type="text" id="po-number" class="border border-gray-300 p-2 rounded-lg text-gray-600">
+                </div>
+            </div>
+
+            <!-- Items Table -->
+            <div class="overflow-x-auto mb-6">
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-blue-600 text-white text-left text-sm">
+                            <th class="p-3 font-medium rounded-tl-lg">Item</th>
+                            <th class="p-3 font-medium text-right">Quantity</th>
+                            <th class="p-3 font-medium text-right">Rate</th>
+                            <th class="p-3 font-medium text-right rounded-tr-lg">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="items-table-body" class="divide-y divide-gray-200">
+                        <!-- Item rows will be added here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <button id="add-item" class="w-full py-2 px-4 bg-gray-100 text-blue-500 font-semibold rounded-lg hover:bg-gray-200 transition-colors">
+                + Line Item
+            </button>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
+                <!-- Notes and Terms -->
+                <div class="space-y-4">
+                    <div class="space-y-2">
+                        <p class="font-semibold text-gray-700">Notes</p>
+                        <textarea id="notes" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Notes - any relevant information not already covered.">Detailed information available on Track Time Report Excel and Available on:
+-> https://docs.google.com/spreadsheets/d/1ekwJ_L6Ckn_9ffMvem8OcqgF5B9HNOI3n3/edit?usp=sharing&ouid=107556003731901466489&rtpof=true&sd=true</textarea>
+                    </div>
+                    <div class="space-y-2">
+                        <p class="font-semibold text-gray-700">Terms</p>
+                        <textarea id="terms" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Terms and conditions">------------------- Main -------------------
+Full name: ADOLFO ANDRES HINCAPIE GARCIA
+Bank name: Bancolombia, Panama, S. A
+Bank Address: 
+Swift code: COLOCOPAXXX
+Account type: Savings
+ID number: 1044400184</textarea>
+                    </div>
+                </div>
+
+                <!-- Totals Section -->
+                <div class="flex flex-col space-y-4 items-end">
+                    <div class="flex justify-between w-full md:w-3/4">
+                        <span class="text-gray-700">Subtotal</span>
+                        <span id="subtotal" class="font-semibold text-gray-800">$0.00</span>
+                    </div>
+                    <div class="flex justify-between w-full md:w-3/4">
+                        <span class="text-gray-700">Tax</span>
+                        <input type="number" id="tax-input" class="table-cell-input w-20 text-right" value="0">
+                    </div>
+                    <div class="flex justify-between w-full md:w-3/4">
+                        <span class="text-gray-700">Total</span>
+                        <span id="total" class="font-bold text-gray-800 text-lg">$0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Actions -->
+        <div class="w-full lg:w-1/4 bg-gray-100 rounded-lg p-6 flex flex-col items-center shadow-md">
+            <button id="download-btn" class="w-full py-3 px-6 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-colors mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.707-9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 9.586V3a1 1 0 10-2 0v6.586L6.707 7.707z" clip-rule="evenodd" />
+                </svg>
+                Download
+            </button>
+            <div class="w-full border-t border-gray-300 pt-4 mt-4">
+                <div class="mb-4">
+                    <label for="theme-select" class="block text-sm font-medium text-gray-700">Theme</label>
+                    <select id="theme-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option>Classic</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="currency-select" class="block text-sm font-medium text-gray-700">Currency</label>
+                    <select id="currency-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option>$ USD</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        window.onload = function() {
+            // Set current date for invoice date input
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('invoice-date').value = today;
+
+            // Get references to key elements
+            const itemsTableBody = document.getElementById('items-table-body');
+            const addItemBtn = document.getElementById('add-item');
+            const downloadBtn = document.getElementById('download-btn');
+            const invoicePreview = document.getElementById('invoice-preview');
+            const subtotalEl = document.getElementById('subtotal');
+            const totalEl = document.getElementById('total');
+            const taxInput = document.getElementById('tax-input');
+            const currencySelect = document.getElementById('currency-select');
+            
+            let currencySymbol = '$';
+
+            // Initial item rows
+            addItemRow('Mar 2025 - BU NBS General', 18.3, 22);
+            addItemRow('Apr 2025- BU NBS General', 18.4, 22);
+            addItemRow('Apr 2025- Guatemala_REDD', 5.9, 22);
+            addItemRow('Mar 2025- Guatemala_REDD', 4.1, 22);
+            addItemRow('Mar 2025 - Vichada_ARR_CO', 67.5, 22);
+            addItemRow('Apr 2025 - Vichada_ARR_CO', 72, 22);
+            updateTotals();
+
+            // Event Listeners
+            addItemBtn.addEventListener('click', () => {
+                addItemRow('', 0, 0);
+            });
+
+            downloadBtn.addEventListener('click', generatePDF);
+
+            itemsTableBody.addEventListener('input', (e) => {
+                if (e.target.classList.contains('item-quantity') || e.target.classList.contains('item-rate')) {
+                    const row = e.target.closest('.item-row');
+                    updateItemAmount(row);
+                }
+            });
+
+            itemsTableBody.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-item-btn')) {
+                    const row = e.target.closest('.item-row');
+                    if (itemsTableBody.childElementCount > 1) {
+                        row.remove();
+                        updateTotals();
+                    } else {
+                        // Optional: Show a message that at least one item is required
+                        console.log("Cannot remove the last item.");
+                    }
+                }
+            });
+
+            taxInput.addEventListener('input', updateTotals);
+            currencySelect.addEventListener('change', (e) => {
+                currencySymbol = e.target.value.split(' ')[0];
+                updateTotals();
+            });
+
+            // Functions
+            function addItemRow(description, quantity, rate) {
+                const newRow = document.createElement('tr');
+                newRow.className = 'item-row transition-all duration-200 hover:bg-gray-50';
+                newRow.innerHTML = `
+                    <td class="p-3">
+                        <input type="text" class="item-description w-full p-2" value="${description}">
+                    </td>
+                    <td class="p-3 text-right">
+                        <input type="number" class="item-quantity table-cell-input" value="${quantity}" step="0.01">
+                    </td>
+                    <td class="p-3 text-right">
+                        <input type="number" class="item-rate table-cell-input" value="${rate}" step="0.01">
+                    </td>
+                    <td class="p-3 text-right relative">
+                        <span class="absolute left-1 top-1/2 -translate-y-1/2 text-gray-500">${currencySymbol}</span>
+                        <span class="item-amount font-semibold text-gray-800 ml-4">${(quantity * rate).toFixed(2)}</span>
+                    </td>
+                `;
+                itemsTableBody.appendChild(newRow);
+            }
+
+            function updateItemAmount(row) {
+                const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
+                const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
+                const amount = quantity * rate;
+                row.querySelector('.item-amount').textContent = amount.toFixed(2);
+                updateTotals();
+            }
+
+            function updateTotals() {
+                let subtotal = 0;
+                document.querySelectorAll('.item-amount').forEach(el => {
+                    subtotal += parseFloat(el.textContent) || 0;
+                });
+                
+                const tax = parseFloat(taxInput.value) || 0;
+                const total = subtotal + tax;
+                
+                subtotalEl.textContent = `${currencySymbol}${subtotal.toFixed(2)}`;
+                totalEl.textContent = `${currencySymbol}${total.toFixed(2)}`;
+            }
+
+            function generatePDF() {
+                // Hide download button and side panel before generating PDF
+                const downloadButton = document.getElementById('download-btn');
+                const sidePanel = downloadButton.parentElement;
+                downloadButton.classList.add('hidden');
+                sidePanel.classList.add('hidden');
+            
+                html2canvas(invoicePreview, {
+                    scale: 2 // Use a higher scale for better resolution
+                }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/jpeg', 1.0); // Use JPEG for smaller file size
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const imgWidth = 210; // A4 width in mm
+                    const pageHeight = 297; // A4 height in mm
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
+            
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+            
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+            
+                    pdf.save('invoice.pdf');
+            
+                    // Show button and side panel again
+                    downloadButton.classList.remove('hidden');
+                    sidePanel.classList.remove('hidden');
+                });
+            }
+        };
+    </script>
+
+</body>
+</html>
