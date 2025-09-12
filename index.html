@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -47,9 +47,25 @@
         .item-row:hover {
             background-color: #F9FAFB;
         }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-8">
+
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="text-white text-xl">Processing...</div>
+    </div>
 
     <!-- Main Container -->
     <div class="flex flex-col lg:flex-row gap-8">
@@ -58,58 +74,59 @@
         <div id="invoice-preview" class="flex-grow w-full lg:w-3/4 bg-white rounded-lg p-6 sm:p-12 shadow-md">
             <!-- Header -->
             <div class="flex justify-between items-start mb-10">
-                <div class="flex items-center space-x-4">
-                    <div class="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-2xl">
-                        AAHINCAPIE
-                    </div>
+                <div class="flex flex-col">
                     <div class="text-3xl font-bold text-gray-800">INVOICE</div>
+                    <div class="flex items-center space-x-2 mt-2">
+                        <div class="text-gray-500 font-bold">#</div>
+                        <input type="text" id="invoice-number" value="2" class="w-16 font-bold text-gray-800 border-b border-gray-300 focus:outline-none focus:border-blue-500">
+                    </div>
                 </div>
-                <div class="flex flex-col items-end">
-                    <div class="text-sm text-gray-500">Invoice #</div>
-                    <input type="text" id="invoice-number" value="2" class="w-24 text-right font-bold text-lg text-gray-800 border-b border-gray-300 focus:outline-none focus:border-blue-500">
+                <div class="flex flex-col items-end space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-500">Date:</span>
+                        <input type="date" id="invoice-date" class="w-32 text-right border-b border-gray-300 text-gray-800">
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-500">Due Date:</span>
+                        <input type="date" id="due-date" class="w-32 text-right border-b border-gray-300 text-gray-800">
+                    </div>
+                    <div class="flex flex-col items-end text-right mt-4 p-2 bg-gray-100 rounded-md">
+                        <div class="text-gray-500 text-sm">Balance Due:</div>
+                        <div id="balance-due" class="text-2xl font-bold text-blue-600">$0.00</div>
+                    </div>
                 </div>
             </div>
 
             <!-- Company and Client Info -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                <!-- Company Details -->
-                <div class="space-y-2">
-                    <p class="font-semibold text-gray-700">From</p>
-                    <textarea id="from-company" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Your Company Name&#10;Address&#10;City, Postal Code&#10;Phone&#10;Email">FORLIANCE GMBH
+                <!-- From -->
+                <div class="space-y-1">
+                    <p class="font-bold text-gray-700">Name: Adolfo Andrés Hincapié García</p>
+                    <p class="text-sm text-gray-600">Legal Address: ALL 34 #88A-41, Torre 7,</p>
+                    <p class="text-sm text-gray-600">Los Cámbulos, Colombia,</p>
+                    <p class="text-sm text-gray-600">Postal Code: 050032</p>
+                    <p class="text-sm text-gray-600">Phone: +57 3507439527</p>
+                    <p class="text-sm text-gray-600">Email: andres.hincapie.ext@forliance.com</p>
+                </div>
+                <!-- Bill To / Ship To -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <p class="font-semibold text-gray-700">Bill To</p>
+                        <textarea id="bill-to" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Client Name&#10;Address&#10;City, Postal Code&#10;Phone&#10;Email">FORLIANCE GMBH
 Eiffestr. 20
 5319 Bonn, Germany
 Email:
 billing@forliance.com</textarea>
-                </div>
-                <!-- Client Details -->
-                <div class="space-y-2">
-                    <p class="font-semibold text-gray-700">Bill To</p>
-                    <textarea id="bill-to" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Client Name&#10;Address&#10;City, Postal Code&#10;Phone&#10;Email">Adolfo Andrés Hincapié García
-Legal Address: ALL 34 #88A-41, Torre 7,
-Los Cámbulos, Colombia,
-Postal Code: 050032
-Phone: +57 3507439527
-Email: andres.hincapie.ext@forliance.com</textarea>
-                </div>
-            </div>
-
-            <!-- Dates and PO -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-                <div class="flex flex-col">
-                    <label for="invoice-date" class="text-gray-500 text-sm">Date</label>
-                    <input type="date" id="invoice-date" class="border border-gray-300 p-2 rounded-lg text-gray-600">
-                </div>
-                <div class="flex flex-col">
-                    <label for="payment-terms" class="text-gray-500 text-sm">Payment Terms</label>
-                    <input type="text" id="payment-terms" class="border border-gray-300 p-2 rounded-lg text-gray-600">
-                </div>
-                <div class="flex flex-col">
-                    <label for="due-date" class="text-gray-500 text-sm">Due Date</label>
-                    <input type="date" id="due-date" class="border border-gray-300 p-2 rounded-lg text-gray-600">
-                </div>
-                <div class="flex flex-col">
-                    <label for="po-number" class="text-gray-500 text-sm">PO Number</label>
-                    <input type="text" id="po-number" class="border border-gray-300 p-2 rounded-lg text-gray-600">
+                    </div>
+                    <div class="space-y-2">
+                        <p class="font-semibold text-gray-700">Ship To</p>
+                        <textarea id="ship-to" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Shipping Address">50 Charles Crt, Lake
+Hawea, 9382, New
+Zealand
+Email:
+gary.green@environmental
+accounts.com</textarea>
+                    </div>
                 </div>
             </div>
 
@@ -117,8 +134,9 @@ Email: andres.hincapie.ext@forliance.com</textarea>
             <div class="overflow-x-auto mb-6">
                 <table class="w-full">
                     <thead>
-                        <tr class="bg-blue-600 text-white text-left text-sm">
+                        <tr class="bg-gray-100 text-gray-700 text-left text-sm">
                             <th class="p-3 font-medium rounded-tl-lg">Item</th>
+                            <th class="p-3 font-medium text-center">Currency</th>
                             <th class="p-3 font-medium text-right">Quantity</th>
                             <th class="p-3 font-medium text-right">Rate</th>
                             <th class="p-3 font-medium text-right rounded-tr-lg">Amount</th>
@@ -135,38 +153,22 @@ Email: andres.hincapie.ext@forliance.com</textarea>
             </button>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
-                <!-- Notes and Terms -->
-                <div class="space-y-4">
-                    <div class="space-y-2">
-                        <p class="font-semibold text-gray-700">Notes</p>
-                        <textarea id="notes" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Notes - any relevant information not already covered.">Detailed information available on Track Time Report Excel and Available on:
+                <!-- Notes -->
+                <div class="space-y-2">
+                    <p class="font-semibold text-gray-700">Notes</p>
+                    <textarea id="notes" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Notes - any relevant information not already covered.">Detailed information available on Track Time Report Excel and Available on:
 -> https://docs.google.com/spreadsheets/d/1ekwJ_L6Ckn_9ffMvem8OcqgF5B9HNOI3n3/edit?usp=sharing&ouid=107556003731901466489&rtpof=true&sd=true</textarea>
-                    </div>
-                    <div class="space-y-2">
-                        <p class="font-semibold text-gray-700">Terms</p>
-                        <textarea id="terms" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Terms and conditions">------------------- Main -------------------
-Full name: ADOLFO ANDRES HINCAPIE GARCIA
-Bank name: Bancolombia, Panama, S. A
-Bank Address: 
-Swift code: COLOCOPAXXX
-Account type: Savings
-ID number: 1044400184</textarea>
-                    </div>
                 </div>
 
                 <!-- Totals Section -->
                 <div class="flex flex-col space-y-4 items-end">
                     <div class="flex justify-between w-full md:w-3/4">
-                        <span class="text-gray-700">Subtotal</span>
-                        <span id="subtotal" class="font-semibold text-gray-800">$0.00</span>
-                    </div>
-                    <div class="flex justify-between w-full md:w-3/4">
-                        <span class="text-gray-700">Tax</span>
-                        <input type="number" id="tax-input" class="table-cell-input w-20 text-right" value="0">
-                    </div>
-                    <div class="flex justify-between w-full md:w-3/4">
                         <span class="text-gray-700">Total</span>
                         <span id="total" class="font-bold text-gray-800 text-lg">$0.00</span>
+                    </div>
+                    <div class="flex justify-between w-full md:w-3/4">
+                        <span class="text-gray-700">Balance Due</span>
+                        <span id="balance-due-summary" class="font-bold text-gray-800 text-lg">$0.00</span>
                     </div>
                 </div>
             </div>
@@ -174,60 +176,226 @@ ID number: 1044400184</textarea>
 
         <!-- Sidebar Actions -->
         <div class="w-full lg:w-1/4 bg-gray-100 rounded-lg p-6 flex flex-col items-center shadow-md">
+            <div class="w-full mb-4">
+                <label for="load-invoices" class="block text-sm font-medium text-gray-700">Load Invoice</label>
+                <select id="load-invoices" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">-- Select an Invoice --</option>
+                </select>
+            </div>
+            <button id="save-btn" class="w-full py-3 px-6 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700 transition-colors mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M5 2a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H5zm3 9a3 3 0 116 0 3 3 0 01-6 0z" />
+                    <path fill-rule="evenodd" d="M7 2.225A2.992 2.992 0 019 2h2a2.992 2.992 0 012 2.225V4a1 1 0 001 1h1a1 1 0 100-2h-1V3a1 1 0 00-2 0v-.775zm3 0V4a1 1 0 001 1h2a1 1 0 001-1V3a1 1 0 00-2 0v.775zM15 9a1 1 0 10-2 0v2a1 1 0 102 0V9z" clip-rule="evenodd" />
+                </svg>
+                Save
+            </button>
             <button id="download-btn" class="w-full py-3 px-6 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-colors mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.707-9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 9.586V3a1 1 0 10-2 0v6.586L6.707 7.707z" clip-rule="evenodd" />
                 </svg>
                 Download
             </button>
-            <div class="w-full border-t border-gray-300 pt-4 mt-4">
-                <div class="mb-4">
-                    <label for="theme-select" class="block text-sm font-medium text-gray-700">Theme</label>
-                    <select id="theme-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option>Classic</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="currency-select" class="block text-sm font-medium text-gray-700">Currency</label>
-                    <select id="currency-select" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option>$ USD</option>
-                    </select>
-                </div>
-            </div>
         </div>
 
     </div>
 
-    <script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        setLogLevel('Debug');
+
+        let app;
+        let db;
+        let auth;
+        let userId;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        if (Object.keys(firebaseConfig).length > 0) {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } else {
+            console.error("Firebase config is missing. Please check your environment.");
+        }
+
+        const showLoading = () => document.getElementById('loading-overlay').classList.remove('hidden');
+        const hideLoading = () => document.getElementById('loading-overlay').classList.add('hidden');
+
+        function showMessage(message) {
+            const messageBox = document.createElement('div');
+            messageBox.className = "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-lg shadow-xl z-50";
+            messageBox.textContent = message;
+            document.body.appendChild(messageBox);
+            setTimeout(() => {
+                messageBox.remove();
+            }, 3000);
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                console.log("User authenticated:", userId);
+                await loadInvoices();
+            } else {
+                console.log("User not authenticated, signing in anonymously...");
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Firebase authentication error:", error);
+                }
+            }
+        });
+
+        const getInvoiceData = () => {
+            const items = [];
+            document.querySelectorAll('#items-table-body .item-row').forEach(row => {
+                const item = {
+                    description: row.querySelector('.item-description').value,
+                    currency: row.querySelector('.item-currency').value,
+                    quantity: parseFloat(row.querySelector('.item-quantity').value),
+                    rate: parseFloat(row.querySelector('.item-rate').value),
+                    amount: parseFloat(row.querySelector('.item-amount').textContent)
+                };
+                items.push(item);
+            });
+
+            return {
+                invoiceNumber: document.getElementById('invoice-number').value,
+                invoiceDate: document.getElementById('invoice-date').value,
+                dueDate: document.getElementById('due-date').value,
+                from: document.getElementById('from-company').value,
+                billTo: document.getElementById('bill-to').value,
+                shipTo: document.getElementById('ship-to').value,
+                notes: document.getElementById('notes').value,
+                items: items,
+                total: parseFloat(document.getElementById('total').textContent.replace('$', '')),
+                createdAt: new Date()
+            };
+        };
+
+        const saveInvoice = async () => {
+            if (!userId) {
+                showMessage("Authentication not ready. Please wait.");
+                return;
+            }
+
+            showLoading();
+            const invoiceData = getInvoiceData();
+            try {
+                const invoicesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/invoices`);
+                await addDoc(invoicesCollectionRef, invoiceData);
+                showMessage("Invoice saved successfully!");
+                await loadInvoices();
+            } catch (error) {
+                console.error("Error saving invoice: ", error);
+                showMessage("Failed to save invoice. See console for details.");
+            } finally {
+                hideLoading();
+            }
+        };
+
+        const loadInvoices = async () => {
+            if (!userId) {
+                return;
+            }
+
+            showLoading();
+            try {
+                const invoicesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/invoices`);
+                const q = query(invoicesCollectionRef);
+                const querySnapshot = await getDocs(q);
+
+                const loadSelect = document.getElementById('load-invoices');
+                loadSelect.innerHTML = '<option value="">-- Select an Invoice --</option>';
+
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify(data);
+                    const invoiceDate = data.invoiceDate ? new Date(data.invoiceDate).toLocaleDateString() : 'No Date';
+                    option.textContent = `Invoice #${data.invoiceNumber || 'N/A'} - ${invoiceDate}`;
+                    loadSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error("Error loading invoices: ", error);
+                showMessage("Failed to load invoices. See console for details.");
+            } finally {
+                hideLoading();
+            }
+        };
+
+        const populateInvoice = (invoiceData) => {
+            document.getElementById('invoice-number').value = invoiceData.invoiceNumber || '';
+            document.getElementById('invoice-date').value = invoiceData.invoiceDate || '';
+            document.getElementById('dueDate').value = invoiceData.dueDate || '';
+            document.getElementById('from-company').value = invoiceData.from || '';
+            document.getElementById('bill-to').value = invoiceData.billTo || '';
+            document.getElementById('ship-to').value = invoiceData.shipTo || '';
+            document.getElementById('notes').value = invoiceData.notes || '';
+
+            const itemsTableBody = document.getElementById('items-table-body');
+            itemsTableBody.innerHTML = '';
+            if (invoiceData.items && invoiceData.items.length > 0) {
+                invoiceData.items.forEach(item => {
+                    addItemRow(item.description, item.currency, item.quantity, item.rate);
+                });
+            } else {
+                addItemRow('', '$', 0, 0);
+            }
+            updateTotals();
+        };
+
         window.onload = function() {
-            // Set current date for invoice date input
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('invoice-date').value = today;
+            // Set current date and due date
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            document.getElementById('invoice-date').value = todayStr;
+
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + 15); // Example: 15 days from now
+            const dueDateStr = dueDate.toISOString().split('T')[0];
+            document.getElementById('due-date').value = dueDateStr;
 
             // Get references to key elements
             const itemsTableBody = document.getElementById('items-table-body');
             const addItemBtn = document.getElementById('add-item');
+            const saveBtn = document.getElementById('save-btn');
             const downloadBtn = document.getElementById('download-btn');
-            const invoicePreview = document.getElementById('invoice-preview');
-            const subtotalEl = document.getElementById('subtotal');
             const totalEl = document.getElementById('total');
-            const taxInput = document.getElementById('tax-input');
-            const currencySelect = document.getElementById('currency-select');
+            const balanceDueEl = document.getElementById('balance-due');
+            const balanceDueSummaryEl = document.getElementById('balance-due-summary');
+            const loadSelect = document.getElementById('load-invoices');
             
-            let currencySymbol = '$';
-
-            // Initial item rows
-            addItemRow('Mar 2025 - BU NBS General', 18.3, 22);
-            addItemRow('Apr 2025- BU NBS General', 18.4, 22);
-            addItemRow('Apr 2025- Guatemala_REDD', 5.9, 22);
-            addItemRow('Mar 2025- Guatemala_REDD', 4.1, 22);
-            addItemRow('Mar 2025 - Vichada_ARR_CO', 67.5, 22);
-            addItemRow('Apr 2025 - Vichada_ARR_CO', 72, 22);
+            // Initial item rows based on the new example
+            addItemRow('Mar 2025 - General', '$', 14.3, 30);
+            addItemRow('Mar 2025 - Geospatial Analysis', '$', 41.5, 30);
+            addItemRow('Mar 2025 - Meetings', '$', 8, 30);
+            addItemRow('Apr 2025 - General', '$', 25.5, 30);
+            addItemRow('Apr 2025 - Geospatial Analysis', '$', 2.5, 30);
+            addItemRow('Apr 2025- Meetings', '$', 1, 30);
             updateTotals();
 
             // Event Listeners
             addItemBtn.addEventListener('click', () => {
-                addItemRow('', 0, 0);
+                addItemRow('', '$', 0, 0);
+            });
+
+            saveBtn.addEventListener('click', saveInvoice);
+
+            loadSelect.addEventListener('change', (e) => {
+                const selectedInvoice = JSON.parse(e.target.value);
+                if (selectedInvoice) {
+                    populateInvoice(selectedInvoice);
+                }
             });
 
             downloadBtn.addEventListener('click', generatePDF);
@@ -246,25 +414,22 @@ ID number: 1044400184</textarea>
                         row.remove();
                         updateTotals();
                     } else {
-                        // Optional: Show a message that at least one item is required
-                        console.log("Cannot remove the last item.");
+                        showMessage("Cannot remove the last item. At least one line is required.");
                     }
                 }
             });
 
-            taxInput.addEventListener('input', updateTotals);
-            currencySelect.addEventListener('change', (e) => {
-                currencySymbol = e.target.value.split(' ')[0];
-                updateTotals();
-            });
-
             // Functions
-            function addItemRow(description, quantity, rate) {
+            function addItemRow(description, currency, quantity, rate) {
                 const newRow = document.createElement('tr');
                 newRow.className = 'item-row transition-all duration-200 hover:bg-gray-50';
+                const amount = (quantity * rate).toFixed(2);
                 newRow.innerHTML = `
                     <td class="p-3">
-                        <input type="text" class="item-description w-full p-2" value="${description}">
+                        <input type="text" class="item-description w-full p-2 bg-transparent" value="${description}">
+                    </td>
+                    <td class="p-3 text-center">
+                        <input type="text" class="item-currency w-10 text-center bg-transparent" value="${currency}">
                     </td>
                     <td class="p-3 text-right">
                         <input type="number" class="item-quantity table-cell-input" value="${quantity}" step="0.01">
@@ -273,8 +438,10 @@ ID number: 1044400184</textarea>
                         <input type="number" class="item-rate table-cell-input" value="${rate}" step="0.01">
                     </td>
                     <td class="p-3 text-right relative">
-                        <span class="absolute left-1 top-1/2 -translate-y-1/2 text-gray-500">${currencySymbol}</span>
-                        <span class="item-amount font-semibold text-gray-800 ml-4">${(quantity * rate).toFixed(2)}</span>
+                        <span class="item-amount font-semibold text-gray-800">${amount}</span>
+                        <button class="remove-item-btn absolute right-2 top-1/2 -translate-y-1/2 p-1 text-red-500 rounded-full hover:bg-gray-200 transition-colors">
+                            &times;
+                        </button>
                     </td>
                 `;
                 itemsTableBody.appendChild(newRow);
@@ -289,56 +456,116 @@ ID number: 1044400184</textarea>
             }
 
             function updateTotals() {
-                let subtotal = 0;
+                let total = 0;
+                let currencySymbol = document.querySelector('.item-currency')?.value || '$';
+
                 document.querySelectorAll('.item-amount').forEach(el => {
-                    subtotal += parseFloat(el.textContent) || 0;
+                    total += parseFloat(el.textContent) || 0;
                 });
                 
-                const tax = parseFloat(taxInput.value) || 0;
-                const total = subtotal + tax;
-                
-                subtotalEl.textContent = `${currencySymbol}${subtotal.toFixed(2)}`;
                 totalEl.textContent = `${currencySymbol}${total.toFixed(2)}`;
+                balanceDueEl.textContent = `${currencySymbol}${total.toFixed(2)}`;
+                balanceDueSummaryEl.textContent = `${currencySymbol}${total.toFixed(2)}`;
             }
 
             function generatePDF() {
-                // Hide download button and side panel before generating PDF
-                const downloadButton = document.getElementById('download-btn');
-                const sidePanel = downloadButton.parentElement;
-                downloadButton.classList.add('hidden');
-                sidePanel.classList.add('hidden');
-            
-                html2canvas(invoicePreview, {
-                    scale: 2 // Use a higher scale for better resolution
-                }).then(canvas => {
-                    const imgData = canvas.toDataURL('image/jpeg', 1.0); // Use JPEG for smaller file size
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    const imgWidth = 210; // A4 width in mm
-                    const pageHeight = 297; // A4 height in mm
-                    const imgHeight = canvas.height * imgWidth / canvas.width;
-                    let heightLeft = imgHeight;
-                    let position = 0;
-            
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-            
-                    while (heightLeft >= 0) {
-                        position = heightLeft - imgHeight;
-                        pdf.addPage();
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
-                    }
-            
-                    pdf.save('invoice.pdf');
-            
-                    // Show button and side panel again
-                    downloadButton.classList.remove('hidden');
-                    sidePanel.classList.remove('hidden');
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const margin = 20;
+                let y = margin;
+                const fontSize = 12;
+                const lineHeight = 10;
+                const columnMargin = 50;
+
+                const invoiceData = getInvoiceData();
+                const currencySymbol = invoiceData.items[0]?.currency || '$';
+
+                // Invoice Header
+                doc.setFontSize(24);
+                doc.setFont("helvetica", "bold");
+                doc.text("INVOICE", 150, y);
+                doc.setFontSize(14);
+                doc.text(`#${invoiceData.invoiceNumber}`, 150, y + 8);
+                y += 20;
+
+                // Company and Client Info
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Date: ${invoiceData.invoiceDate}`, 150, y);
+                doc.text(`Due Date: ${invoiceData.dueDate}`, 150, y + lineHeight);
+                y += 20;
+
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "bold");
+                doc.text("From:", margin, y);
+                doc.text("Bill To:", 80, y);
+                doc.text("Ship To:", 140, y);
+                y += 5;
+
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                const fromLines = doc.splitTextToSize(invoiceData.from, 60);
+                const billToLines = doc.splitTextToSize(invoiceData.billTo, 60);
+                const shipToLines = doc.splitTextToSize(invoiceData.shipTo, 60);
+
+                let maxLines = Math.max(fromLines.length, billToLines.length, shipToLines.length);
+
+                for(let i = 0; i < maxLines; i++) {
+                    doc.text(fromLines[i] || '', margin, y + (i * 4));
+                    doc.text(billToLines[i] || '', 80, y + (i * 4));
+                    doc.text(shipToLines[i] || '', 140, y + (i * 4));
+                }
+                y += maxLines * 4 + 10;
+
+                // Items Table Header
+                doc.setFillColor(243, 244, 246);
+                doc.rect(margin, y, 170, 8, 'F');
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.setTextColor(55, 65, 81);
+                doc.text("Item", margin + 2, y + 5);
+                doc.text("Currency", 70, y + 5, { align: "center" });
+                doc.text("Quantity", 110, y + 5, { align: "right" });
+                doc.text("Rate", 140, y + 5, { align: "right" });
+                doc.text("Amount", 185, y + 5, { align: "right" });
+                y += 10;
+                doc.setTextColor(0, 0, 0);
+                
+                // Items Table Rows
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                invoiceData.items.forEach(item => {
+                    doc.text(item.description, margin + 2, y + 5);
+                    doc.text(item.currency, 70, y + 5, { align: "center" });
+                    doc.text(item.quantity.toString(), 110, y + 5, { align: "right" });
+                    doc.text(item.rate.toFixed(2), 140, y + 5, { align: "right" });
+                    doc.text(item.amount.toFixed(2), 185, y + 5, { align: "right" });
+                    y += 8;
                 });
+
+                y += 15;
+
+                // Notes
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "bold");
+                doc.text("Notes:", margin, y);
+                y += 5;
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(invoiceData.notes, margin, y, { maxWidth: 100 });
+                
+                // Totals
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "bold");
+                doc.text("Total:", 140, y);
+                doc.text(`${currencySymbol}${invoiceData.total.toFixed(2)}`, 185, y, { align: "right" });
+                
+                doc.save('invoice.pdf');
             }
         };
     </script>
+</body>
+</html>
 
 </body>
 </html>
