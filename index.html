@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -272,7 +272,6 @@ accounts.com</textarea>
                 invoiceNumber: document.getElementById('invoice-number').value,
                 invoiceDate: document.getElementById('invoice-date').value,
                 dueDate: document.getElementById('due-date').value,
-                from: document.getElementById('from-company').value,
                 billTo: document.getElementById('bill-to').value,
                 shipTo: document.getElementById('ship-to').value,
                 notes: document.getElementById('notes').value,
@@ -336,8 +335,7 @@ accounts.com</textarea>
         const populateInvoice = (invoiceData) => {
             document.getElementById('invoice-number').value = invoiceData.invoiceNumber || '';
             document.getElementById('invoice-date').value = invoiceData.invoiceDate || '';
-            document.getElementById('dueDate').value = invoiceData.dueDate || '';
-            document.getElementById('from-company').value = invoiceData.from || '';
+            document.getElementById('due-date').value = invoiceData.dueDate || '';
             document.getElementById('bill-to').value = invoiceData.billTo || '';
             document.getElementById('ship-to').value = invoiceData.shipTo || '';
             document.getElementById('notes').value = invoiceData.notes || '';
@@ -504,7 +502,12 @@ accounts.com</textarea>
 
                 doc.setFontSize(10);
                 doc.setFont("helvetica", "normal");
-                const fromLines = doc.splitTextToSize(invoiceData.from, 60);
+                
+                // Get hardcoded "From" address text
+                const fromElement = document.querySelector('.space-y-1');
+                const fromText = fromElement ? fromElement.innerText : '';
+                const fromLines = doc.splitTextToSize(fromText, 60);
+
                 const billToLines = doc.splitTextToSize(invoiceData.billTo, 60);
                 const shipToLines = doc.splitTextToSize(invoiceData.shipTo, 60);
 
@@ -564,8 +567,5 @@ accounts.com</textarea>
             }
         };
     </script>
-</body>
-</html>
-
 </body>
 </html>
