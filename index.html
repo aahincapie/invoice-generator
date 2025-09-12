@@ -1,571 +1,415 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #F3F4F6;
-        }
-        .invoice-container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background-color: #fff;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        input[type="text"], input[type="number"], input[type="date"], textarea {
-            border-radius: 0.5rem;
-            border: 1px solid #D1D5DB;
-            padding: 0.5rem;
-            transition: border-color 0.2s;
-        }
-        input:focus, textarea:focus {
-            outline: none;
-            border-color: #2563EB;
-        }
-        .table-cell-input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            padding: 0.25rem;
-            text-align: right;
-        }
-        .table-cell-input:focus {
-            outline: 1px solid #3B82F6;
-            border-radius: 0.25rem;
-        }
-        .item-row:hover {
-            background-color: #F9FAFB;
-        }
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice – 7 Zones Layout</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root{--ink:#0f172a;--muted:#64748b;--line:#e5e7eb;--panel:#f8fafc}
+    html,body{font-family:'Inter',system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f3f4f6}
+    .sheet{max-width: 960px;margin:2rem auto;background:#fff;border-radius:20px;box-shadow:0 10px 30px rgba(15,23,42,.08);}
+    .invoice-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto 1fr auto;gap:24px;padding:40px}
+    .zone-1{grid-column:1/span 1;grid-row:1}
+    .zone-4{grid-column:2/span 1;grid-row:1;justify-self:end;text-align:right}
+    .zone-2{grid-column:1/span 1;grid-row:2}
+    .zone-3{grid-column:2/span 1;grid-row:2}
+    .zone-5{grid-column:2/span 1;grid-row:3}
+    .zone-6{grid-column:1/span 2;grid-row:4}
+    .zone-7{grid-column:1/span 2;grid-row:5}
+    @media (max-width: 860px){.invoice-grid{grid-template-columns:1fr;grid-template-rows:repeat(7,auto)}.zone-4,.zone-5{justify-self:start;text-align:left}.zone-6 table{font-size:.9rem}}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+    .h-rule{height:1px;background:var(--line)}
+    .field{border-bottom:1px solid #e5e7eb}
+    .number-input::-webkit-outer-spin-button,.number-input::-webkit-inner-spin-button{ -webkit-appearance:none;margin:0}
+    .number-input{appearance:textfield}
+  </style>
 </head>
-<body class="p-4 sm:p-8">
+<body class="p-6">
+  <div class="max-w-[960px] mx-auto mb-4 flex gap-2">
+    <select id="load-invoices" class="flex-1 h-10 rounded-lg border border-slate-300 px-3 bg-white">
+      <option value="">-- Select an Invoice --</option>
+    </select>
+    <button id="save-btn" class="h-10 px-4 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700">
+      Save
+    </button>
+  </div>
 
-    <div id="loading-overlay" class="loading-overlay hidden">
-        <div class="text-white text-xl">Processing...</div>
-    </div>
-
-    <!-- Main Container -->
-    <div class="flex flex-col lg:flex-row gap-8">
-
-        <!-- Invoice Preview Section -->
-        <div id="invoice-preview" class="flex-grow w-full lg:w-3/4 bg-white rounded-lg p-6 sm:p-12 shadow-md">
-            <!-- Header -->
-            <div class="flex justify-between items-start mb-10">
-                <div class="flex flex-col">
-                    <div class="text-3xl font-bold text-gray-800">INVOICE</div>
-                    <div class="flex items-center space-x-2 mt-2">
-                        <div class="text-gray-500 font-bold">#</div>
-                        <input type="text" id="invoice-number" value="2" class="w-16 font-bold text-gray-800 border-b border-gray-300 focus:outline-none focus:border-blue-500">
-                    </div>
-                </div>
-                <div class="flex flex-col items-end space-y-2">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-500">Date:</span>
-                        <input type="date" id="invoice-date" class="w-32 text-right border-b border-gray-300 text-gray-800">
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-sm text-gray-500">Due Date:</span>
-                        <input type="date" id="due-date" class="w-32 text-right border-b border-gray-300 text-gray-800">
-                    </div>
-                    <div class="flex flex-col items-end text-right mt-4 p-2 bg-gray-100 rounded-md">
-                        <div class="text-gray-500 text-sm">Balance Due:</div>
-                        <div id="balance-due" class="text-2xl font-bold text-blue-600">$0.00</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Company and Client Info -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                <!-- From -->
-                <div class="space-y-1">
-                    <p class="font-bold text-gray-700">Name: Adolfo Andrés Hincapié García</p>
-                    <p class="text-sm text-gray-600">Legal Address: ALL 34 #88A-41, Torre 7,</p>
-                    <p class="text-sm text-gray-600">Los Cámbulos, Colombia,</p>
-                    <p class="text-sm text-gray-600">Postal Code: 050032</p>
-                    <p class="text-sm text-gray-600">Phone: +57 3507439527</p>
-                    <p class="text-sm text-gray-600">Email: andres.hincapie.ext@forliance.com</p>
-                </div>
-                <!-- Bill To / Ship To -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <p class="font-semibold text-gray-700">Bill To</p>
-                        <textarea id="bill-to" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Client Name&#10;Address&#10;City, Postal Code&#10;Phone&#10;Email">FORLIANCE GMBH
-Eiffestr. 20
-5319 Bonn, Germany
-Email:
-billing@forliance.com</textarea>
-                    </div>
-                    <div class="space-y-2">
-                        <p class="font-semibold text-gray-700">Ship To</p>
-                        <textarea id="ship-to" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Shipping Address">50 Charles Crt, Lake
-Hawea, 9382, New
-Zealand
-Email:
-gary.green@environmental
-accounts.com</textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Items Table -->
-            <div class="overflow-x-auto mb-6">
-                <table class="w-full">
-                    <thead>
-                        <tr class="bg-gray-100 text-gray-700 text-left text-sm">
-                            <th class="p-3 font-medium rounded-tl-lg">Item</th>
-                            <th class="p-3 font-medium text-center">Currency</th>
-                            <th class="p-3 font-medium text-right">Quantity</th>
-                            <th class="p-3 font-medium text-right">Rate</th>
-                            <th class="p-3 font-medium text-right rounded-tr-lg">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody id="items-table-body" class="divide-y divide-gray-200">
-                        <!-- Item rows will be added here -->
-                    </tbody>
-                </table>
-            </div>
-            
-            <button id="add-item" class="w-full py-2 px-4 bg-gray-100 text-blue-500 font-semibold rounded-lg hover:bg-gray-200 transition-colors">
-                + Line Item
-            </button>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-10">
-                <!-- Notes -->
-                <div class="space-y-2">
-                    <p class="font-semibold text-gray-700">Notes</p>
-                    <textarea id="notes" rows="4" class="w-full p-2 border border-gray-300 rounded-lg text-gray-600" placeholder="Notes - any relevant information not already covered.">Detailed information available on Track Time Report Excel and Available on:
--> https://docs.google.com/spreadsheets/d/1ekwJ_L6Ckn_9ffMvem8OcqgF5B9HNOI3n3/edit?usp=sharing&ouid=107556003731901466489&rtpof=true&sd=true</textarea>
-                </div>
-
-                <!-- Totals Section -->
-                <div class="flex flex-col space-y-4 items-end">
-                    <div class="flex justify-between w-full md:w-3/4">
-                        <span class="text-gray-700">Total</span>
-                        <span id="total" class="font-bold text-gray-800 text-lg">$0.00</span>
-                    </div>
-                    <div class="flex justify-between w-full md:w-3/4">
-                        <span class="text-gray-700">Balance Due</span>
-                        <span id="balance-due-summary" class="font-bold text-gray-800 text-lg">$0.00</span>
-                    </div>
-                </div>
-            </div>
+  <div class="sheet" id="invoice">
+    <div class="invoice-grid">
+      <!-- ZONE 1: From (Seller) -->
+      <section class="zone-1">
+        <div class="flex items-start gap-4">
+          <div class="h-12 w-12 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold">A</div>
+          <div>
+            <p class="text-sm text-slate-500">From</p>
+            <p class="font-semibold text-slate-800">Adolfo Andrés Hincapié Garcia</p>
+            <p class="text-slate-600 text-sm">Legal Address: CLL 34 #86A-41, Torre 7, 401. Medellín, Colombia</p>
+            <p class="text-slate-600 text-sm">Postal Code: 050032</p>
+            <p class="text-slate-600 text-sm">Phone: +57 3507439527</p>
+            <p class="text-slate-600 text-sm">Email: bandreshin@gmail.com</p>
+          </div>
         </div>
+      </section>
 
-        <!-- Sidebar Actions -->
-        <div class="w-full lg:w-1/4 bg-gray-100 rounded-lg p-6 flex flex-col items-center shadow-md">
-            <div class="w-full mb-4">
-                <label for="load-invoices" class="block text-sm font-medium text-gray-700">Load Invoice</label>
-                <select id="load-invoices" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <option value="">-- Select an Invoice --</option>
-                </select>
-            </div>
-            <button id="save-btn" class="w-full py-3 px-6 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700 transition-colors mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M5 2a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H5zm3 9a3 3 0 116 0 3 3 0 01-6 0z" />
-                    <path fill-rule="evenodd" d="M7 2.225A2.992 2.992 0 019 2h2a2.992 2.992 0 012 2.225V4a1 1 0 001 1h1a1 1 0 100-2h-1V3a1 1 0 00-2 0v-.775zm3 0V4a1 1 0 001 1h2a1 1 0 001-1V3a1 1 0 00-2 0v.775zM15 9a1 1 0 10-2 0v2a1 1 0 102 0V9z" clip-rule="evenodd" />
-                </svg>
-                Save
-            </button>
-            <button id="download-btn" class="w-full py-3 px-6 bg-blue-600 text-white font-bold rounded-full shadow-lg hover:bg-blue-700 transition-colors mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline-block mr-2" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.707-9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 9.586V3a1 1 0 10-2 0v6.586L6.707 7.707z" clip-rule="evenodd" />
-                </svg>
-                Download
-            </button>
+      <!-- ZONE 4: Invoice Title & number -->
+      <section class="zone-4">
+        <p class="text-4xl font-bold tracking-wide text-slate-800">INVOICE</p>
+        <div class="mt-2 flex items-baseline gap-2 justify-end">
+          <span class="text-slate-500 font-semibold">#</span>
+          <input id="invoice-number" class="w-20 field focus:outline-none text-right text-slate-800 font-semibold bg-transparent" value="3"/>
         </div>
+      </section>
 
+      <!-- ZONE 2: Bill To -->
+      <section class="zone-2 panel p-4">
+        <p class="font-semibold text-slate-700 mb-2">Bill To</p>
+        <textarea id="bill-to" class="w-full bg-transparent resize-y min-h-[112px] text-slate-700" rows="5">Environmental
+Accounting Services Ltd (NZBN 9429031564731)</textarea>
+      </section>
+
+      <!-- ZONE 3: Ship To / Contact -->
+      <section class="zone-3 panel p-4">
+        <p class="font-semibold text-slate-700 mb-2">Ship To</p>
+        <textarea id="ship-to" class="w-full bg-transparent resize-y min-h-[112px] text-slate-700" rows="5">50 Charles Crt, Lake Hawea, 9382, New Zealand
+Email: carly.green@enviroaccounts.com</textarea>
+      </section>
+
+      <!-- ZONE 5: Dates + Balance -->
+      <section class="zone-5 panel p-4">
+        <div class="grid grid-cols-2 gap-4">
+          <label class="text-sm text-slate-500">Date
+            <input id="invoice-date" type="date" class="block w-full mt-1 field bg-white px-2 py-1 rounded"/>
+          </label>
+          <label class="text-sm text-slate-500">Due Date
+            <input id="due-date" type="date" class="block w-full mt-1 field bg-white px-2 py-1 rounded"/>
+          </label>
+        </div>
+        <div class="mt-4 flex items-center justify-between bg-slate-50 border border-slate-200 rounded px-3 py-2">
+          <span class="text-sm text-slate-500">Balance Due</span>
+          <span id="balance-due" class="text-2xl font-bold text-sky-700">USD $0.00</span>
+        </div>
+      </section>
+
+      <!-- ZONE 6: Items table -->
+      <section class="zone-6">
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-700">
+              <tr>
+                <th class="text-left p-3">Item</th>
+                <th class="text-center p-3">Currency</th>
+                <th class="text-right p-3">Quantity</th>
+                <th class="text-right p-3">Rate</th>
+                <th class="text-right p-3">Amount</th>
+                <th class="w-10"></th>
+              </tr>
+            </thead>
+            <tbody id="items-table-body" class="divide-y divide-slate-100">
+            </tbody>
+          </table>
+        </div>
+        <button id="add-item" class="mt-3 w-full h-10 border border-dashed border-slate-300 rounded-lg text-sky-600 font-medium hover:bg-slate-50">+ Line Item</button>
+
+        <div class="mt-6 flex flex-col md:flex-row md:items-start gap-6">
+          <div class="flex-1">
+            <p class="font-medium text-slate-700">Notes</p>
+            <textarea id="notes" rows="5" class="mt-2 w-full panel p-3 bg-transparent resize-y" placeholder="Notes - any relevant information.">Detailed information available on Track Time Report Excel and Available on:
+https://docs.google.com/spreadsheets/d/1ekwJ_L6Ckn_9ffMvem8OcqgF5B9HNOI3n3/edit</textarea>
+          </div>
+          <div class="w-full md:w-80 ml-auto">
+            <div class="panel p-4 space-y-2">
+              <div class="flex justify-between"><span class="text-slate-600">Subtotal</span><span id="subtotal" class="font-semibold text-slate-800">$0.00</span></div>
+              <div class="flex items-center justify-between">
+                <label class="text-slate-600 flex items-center gap-2">Tax (%) <input id="tax" type="number" value="0" class="number-input w-20 text-right panel px-2 py-1"/></label>
+                <span id="tax-amount" class="font-semibold text-slate-800">$0.00</span>
+              </div>
+              <div class="h-rule"></div>
+              <div class="flex justify-between text-lg"><span class="font-medium">Total</span><span id="total" class="font-bold">$0.00</span></div>
+              <div class="flex justify-between text-lg"><span class="font-medium">Balance Due</span><span id="balance-due-summary" class="font-bold">$0.00</span></div>
+            </div>
+            <div class="mt-3 flex gap-3">
+              <button id="download-btn" class="flex-1 h-10 rounded-lg bg-sky-600 text-white font-semibold hover:bg-sky-700">Download PDF</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ZONE 7: Terms + Payment details -->
+      <section class="zone-7 panel p-5">
+        <p class="font-semibold text-slate-700 mb-2">Terms & Payment details</p>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <p class="text-slate-600 text-sm">Signature</p>
+            <div class="mt-2 h-16 border-b border-dashed border-slate-300"></div>
+          </div>
+          <div class="text-sm text-slate-700">
+            <p>Full name: ADOLFO ANDRÉS HINCAPIE GARCIA</p>
+            <p>Bank name: Bancolombia, Panama, S. A</p>
+            <p>Bank Address: CL 47 AQUILINO DE LA GUARDIA, PH PLAZA MARBELLA</p>
+            <p>Account number: 80100027312</p>
+            <p>SWIFT code: COLOPAPAXXX</p>
+            <p>Account type: Savings</p>
+            <p>ID number: 1044500384</p>
+          </div>
+        </div>
+      </section>
+      <section class="zone-6">
+        <!-- ... table and totals ... -->
+        <div class="mt-3 flex gap-3">
+          <button id="download-btn" class="flex-1 h-10 rounded-lg bg-sky-600 text-white font-semibold hover:bg-sky-700">Download PDF</button>
+        </div>
+      </section>
     </div>
+  </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        setLogLevel('Debug');
+  <script>
+    const STORAGE_KEY = 'invoices-7zones';
+    const tbody = document.getElementById('items-table-body');
+    const subtotalEl = document.getElementById('subtotal');
+    const totalEl = document.getElementById('total');
+    const balTop = document.getElementById('balance-due');
+    const balSum = document.getElementById('balance-due-summary');
+    const taxInput = document.getElementById('tax');
+    const saveBtn = document.getElementById('save-btn');
+    const loadSelect = document.getElementById('load-invoices');
 
-        let app;
-        let db;
-        let auth;
-        let userId;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        
-        if (Object.keys(firebaseConfig).length > 0) {
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
-        } else {
-            console.error("Firebase config is missing. Please check your environment.");
-        }
+    function getInvoiceData(){
+      const items = [...tbody.querySelectorAll('tr')].map(tr=>{
+        const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
+        const amount = tr.querySelector('.amount').textContent;
+        return { description: desc.value, currency: currEl.value, quantity: parseFloat(qtyEl.value)||0, rate: parseFloat(rateEl.value)||0, amount: parseFloat(amount)||0 };
+      });
+      return {
+        invoiceNumber: document.getElementById('invoice-number')?.value,
+        invoiceDate: document.getElementById('invoice-date')?.value,
+        dueDate: document.getElementById('due-date')?.value,
+        billTo: document.getElementById('bill-to')?.value,
+        shipTo: document.getElementById('ship-to')?.value,
+        notes: document.getElementById('notes')?.value,
+        subtotal: subtotalEl?.textContent,
+        total: totalEl?.textContent,
+        items,
+        createdAt: new Date().toISOString()
+      };
+    }
 
-        const showLoading = () => document.getElementById('loading-overlay').classList.remove('hidden');
-        const hideLoading = () => document.getElementById('loading-overlay').classList.add('hidden');
+    function populateInvoice(data){
+      if(!data) return;
+      document.getElementById('invoice-number').value = data.invoiceNumber||'';
+      document.getElementById('invoice-date').value = data.invoiceDate||'';
+      document.getElementById('due-date').value = data.dueDate||'';
+      document.getElementById('bill-to').value = data.billTo||'';
+      document.getElementById('ship-to').value = data.shipTo||'';
+      document.getElementById('notes').value = data.notes||'';
+      tbody.innerHTML='';
+      (data.items||[]).forEach(it=> addRow(it.description,it.currency,it.quantity,it.rate));
+      if((data.items||[]).length===0) addRow('','USD $',0,0);
+      recalc();
+    }
 
-        function showMessage(message) {
-            const messageBox = document.createElement('div');
-            messageBox.className = "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gray-800 text-white p-4 rounded-lg shadow-xl z-50";
-            messageBox.textContent = message;
-            document.body.appendChild(messageBox);
-            setTimeout(() => {
-                messageBox.remove();
-            }, 3000);
-        }
+    function saveLocal(){
+      const list = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+      const entry = { id: Date.now().toString(), ...getInvoiceData() };
+      list.push(entry);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+      loadLocalList();
+      toast('Invoice saved locally');
+    }
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                userId = user.uid;
-                console.log("User authenticated:", userId);
-                await loadInvoices();
-            } else {
-                console.log("User not authenticated, signing in anonymously...");
-                try {
-                    if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Firebase authentication error:", error);
-                }
-            }
-        });
+    function loadLocalList(){
+      const list = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+      loadSelect.innerHTML = '<option value="">-- Select an Invoice --</option>';
+      list.forEach(inv=>{
+        const opt = document.createElement('option');
+        const dt = inv.invoiceDate || (inv.createdAt ? inv.createdAt.slice(0,10) : '');
+        opt.value = inv.id;
+        opt.textContent = `Invoice #${inv.invoiceNumber||'—'} — ${dt}`;
+        opt.dataset.payload = JSON.stringify(inv);
+        loadSelect.appendChild(opt);
+      });
+    }
 
-        const getInvoiceData = () => {
-            const items = [];
-            document.querySelectorAll('#items-table-body .item-row').forEach(row => {
-                const item = {
-                    description: row.querySelector('.item-description').value,
-                    currency: row.querySelector('.item-currency').value,
-                    quantity: parseFloat(row.querySelector('.item-quantity').value),
-                    rate: parseFloat(row.querySelector('.item-rate').value),
-                    amount: parseFloat(row.querySelector('.item-amount').textContent)
-                };
-                items.push(item);
-            });
+    function toast(msg){
+      const el=document.createElement('div');
+      el.className='fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg';
+      el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2200);
+    }
 
-            return {
-                invoiceNumber: document.getElementById('invoice-number').value,
-                invoiceDate: document.getElementById('invoice-date').value,
-                dueDate: document.getElementById('due-date').value,
-                billTo: document.getElementById('bill-to').value,
-                shipTo: document.getElementById('ship-to').value,
-                notes: document.getElementById('notes').value,
-                items: items,
-                total: parseFloat(document.getElementById('total').textContent.replace('$', '')),
-                createdAt: new Date()
-            };
-        };
+    saveBtn?.addEventListener('click', saveLocal);
+    loadSelect?.addEventListener('change', e=>{
+      const opt = e.target.selectedOptions[0];
+      if (opt?.dataset?.payload) populateInvoice(JSON.parse(opt.dataset.payload));
+    });
 
-        const saveInvoice = async () => {
-            if (!userId) {
-                showMessage("Authentication not ready. Please wait.");
-                return;
-            }
+    loadLocalList();
+  </script>
+  <script>
+    const tbody = document.getElementById('items-table-body');
+    const subtotalEl = document.getElementById('subtotal');
+    const totalEl = document.getElementById('total');
+    const balTop = document.getElementById('balance-due');
+    const balSum = document.getElementById('balance-due-summary');
+    const taxInput = document.getElementById('tax');
 
-            showLoading();
-            const invoiceData = getInvoiceData();
-            try {
-                const invoicesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/invoices`);
-                await addDoc(invoicesCollectionRef, invoiceData);
-                showMessage("Invoice saved successfully!");
-                await loadInvoices();
-            } catch (error) {
-                console.error("Error saving invoice: ", error);
-                showMessage("Failed to save invoice. See console for details.");
-            } finally {
-                hideLoading();
-            }
-        };
+    const money = (n, cur='USD $') => cur + (Number(n||0)).toFixed(2);
 
-        const loadInvoices = async () => {
-            if (!userId) {
-                return;
-            }
+    function addRow(desc='', cur='USD $', qty=0, rate=0){
+      const tr = document.createElement('tr');
+      const amount = (qty*rate).toFixed(2);
+      tr.className = 'hover:bg-slate-50';
+      tr.innerHTML = `
+        <td class="p-3"><input class="w-full bg-transparent" value="${desc}"></td>
+        <td class="p-3 text-center"><input class="w-20 text-center bg-transparent" value="${cur}"></td>
+        <td class="p-3 text-right"><input type="number" step="0.01" class="number-input w-28 text-right bg-transparent" value="${qty}"></td>
+        <td class="p-3 text-right"><input type="number" step="0.01" class="number-input w-28 text-right bg-transparent" value="${rate}"></td>
+        <td class="p-3 text-right font-semibold amount">${amount}</td>
+        <td class="text-center"><button class="px-2 text-rose-600 hover:underline" title="Remove">×</button></td>`;
+      tbody.appendChild(tr);
+    }
 
-            showLoading();
-            try {
-                const invoicesCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/invoices`);
-                const q = query(invoicesCollectionRef);
-                const querySnapshot = await getDocs(q);
+    function recalc(){
+      let sub=0; let cur = tbody.querySelector('tr input:nth-child(2)')?.value || 'USD $';
+      [...tbody.querySelectorAll('tr')].forEach(tr=>{
+        const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
+        const qty=parseFloat(qtyEl.value)||0; const rate=parseFloat(rateEl.value)||0;
+        const amt=qty*rate; sub+=amt; tr.querySelector('.amount').textContent=amt.toFixed(2);
+      });
+      const taxPct = parseFloat(taxInput.value)||0; const taxAmt = sub*(taxPct/100);
+      const tot = sub+taxAmt;
+      subtotalEl.textContent = money(sub, cur+ ' ');
+      document.getElementById('tax-amount').textContent = money(taxAmt, cur+ ' ');
+      totalEl.textContent = money(tot, cur+ ' ');
+      balTop.textContent = money(tot, cur+ ' ');
+      balSum.textContent = money(tot, cur+ ' ');
+    }
 
-                const loadSelect = document.getElementById('load-invoices');
-                loadSelect.innerHTML = '<option value="">-- Select an Invoice --</option>';
+    document.getElementById('add-item').addEventListener('click',()=>{addRow('', 'USD $', 0, 0)});
+    tbody.addEventListener('input', e=>{ if(e.target.tagName==='INPUT') recalc(); });
+    tbody.addEventListener('click', e=>{ if(e.target.tagName==='BUTTON'){ e.target.closest('tr').remove(); recalc(); }});
+    taxInput.addEventListener('input', recalc);
 
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const option = document.createElement('option');
-                    option.value = JSON.stringify(data);
-                    const invoiceDate = data.invoiceDate ? new Date(data.invoiceDate).toLocaleDateString() : 'No Date';
-                    option.textContent = `Invoice #${data.invoiceNumber || 'N/A'} - ${invoiceDate}`;
-                    loadSelect.appendChild(option);
-                });
-            } catch (error) {
-                console.error("Error loading invoices: ", error);
-                showMessage("Failed to load invoices. See console for details.");
-            } finally {
-                hideLoading();
-            }
-        };
+    // Seed example rows
+    addRow('Aug 2025 – General', 'USD $', 1, 30);
+    addRow('Sep 2025 – Geospatial Analysis', 'USD $', 25, 30);
+    addRow('Sep 2025 – Meetings', 'USD $', 2, 30);
+    recalc();
 
-        const populateInvoice = (invoiceData) => {
-            document.getElementById('invoice-number').value = invoiceData.invoiceNumber || '';
-            document.getElementById('invoice-date').value = invoiceData.invoiceDate || '';
-            document.getElementById('due-date').value = invoiceData.dueDate || '';
-            document.getElementById('bill-to').value = invoiceData.billTo || '';
-            document.getElementById('ship-to').value = invoiceData.shipTo || '';
-            document.getElementById('notes').value = invoiceData.notes || '';
+    // PDF generation following the 7-zone layout
+    document.getElementById('download-btn').addEventListener('click', ()=>{
+      const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
+      const page = { w: doc.internal.pageSize.getWidth(), h: doc.internal.pageSize.getHeight(), m: 40 };
+      let y = page.m;
 
-            const itemsTableBody = document.getElementById('items-table-body');
-            itemsTableBody.innerHTML = '';
-            if (invoiceData.items && invoiceData.items.length > 0) {
-                invoiceData.items.forEach(item => {
-                    addItemRow(item.description, item.currency, item.quantity, item.rate);
-                });
-            } else {
-                addItemRow('', '$', 0, 0);
-            }
-            updateTotals();
-        };
+      const invoiceNumber = document.getElementById('invoice-number').value || '';
+      const billTo = document.getElementById('bill-to').value.trim();
+      const shipTo = document.getElementById('ship-to').value.trim();
+      const invDate = document.getElementById('invoice-date').value || '';
+      const dueDate = document.getElementById('due-date').value || '';
+      const total = document.getElementById('total').textContent;
 
-        window.onload = function() {
-            // Set current date and due date
-            const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
-            document.getElementById('invoice-date').value = todayStr;
+      // Fonts
+      doc.setFont('helvetica','');
 
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + 15); // Example: 15 days from now
-            const dueDateStr = dueDate.toISOString().split('T')[0];
-            document.getElementById('due-date').value = dueDateStr;
+      // ZONE 1 – From
+      doc.setFontSize(10); doc.setTextColor(100);
+      doc.text('From', page.m, y);
+      doc.setTextColor(30); doc.setFontSize(12); doc.setFont(undefined,'bold');
+      doc.text('Adolfo Andrés Hincapié Garcia', page.m, y+16);
+      doc.setFont(undefined,''); doc.setFontSize(10); doc.setTextColor(60);
+      const fromLines = [
+        'Legal Address: CLL 34 #86A-41, Torre 7, 401. Medellín, Colombia',
+        'Postal Code: 050032',
+        'Phone: +57 3507439527',
+        'Email: bandreshin@gmail.com'];
+      fromLines.forEach((t,i)=>doc.text(t, page.m, y+34+i*14));
 
-            // Get references to key elements
-            const itemsTableBody = document.getElementById('items-table-body');
-            const addItemBtn = document.getElementById('add-item');
-            const saveBtn = document.getElementById('save-btn');
-            const downloadBtn = document.getElementById('download-btn');
-            const totalEl = document.getElementById('total');
-            const balanceDueEl = document.getElementById('balance-due');
-            const balanceDueSummaryEl = document.getElementById('balance-due-summary');
-            const loadSelect = document.getElementById('load-invoices');
-            
-            // Initial item rows based on the new example
-            addItemRow('Mar 2025 - General', '$', 14.3, 30);
-            addItemRow('Mar 2025 - Geospatial Analysis', '$', 41.5, 30);
-            addItemRow('Mar 2025 - Meetings', '$', 8, 30);
-            addItemRow('Apr 2025 - General', '$', 25.5, 30);
-            addItemRow('Apr 2025 - Geospatial Analysis', '$', 2.5, 30);
-            addItemRow('Apr 2025- Meetings', '$', 1, 30);
-            updateTotals();
+      // ZONE 4 – Title & number
+      doc.setTextColor(20); doc.setFontSize(26); doc.setFont(undefined,'bold');
+      doc.text('INVOICE', page.w-page.m, y, { align:'right' });
+      doc.setFontSize(12); doc.setFont(undefined,'');
+      doc.text('#'+invoiceNumber, page.w-page.m, y+18, { align:'right' });
 
-            // Event Listeners
-            addItemBtn.addEventListener('click', () => {
-                addItemRow('', '$', 0, 0);
-            });
+      y += 80;
 
-            saveBtn.addEventListener('click', saveInvoice);
+      // ZONES 2 & 3 – Bill/Ship
+      doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Bill To', page.m, y);
+      doc.text('Ship To', page.w/2, y);
+      doc.setFont(undefined,''); doc.setFontSize(10);
+      const billLines = doc.splitTextToSize(billTo, page.w/2 - page.m - 10);
+      const shipLines = doc.splitTextToSize(shipTo, page.w/2 - page.m - 10);
+      const maxLines = Math.max(billLines.length, shipLines.length);
+      billLines.forEach((t,i)=> doc.text(t, page.m, y+16+i*14));
+      shipLines.forEach((t,i)=> doc.text(t, page.w/2, y+16+i*14));
 
-            loadSelect.addEventListener('change', (e) => {
-                const selectedInvoice = JSON.parse(e.target.value);
-                if (selectedInvoice) {
-                    populateInvoice(selectedInvoice);
-                }
-            });
+      // ZONE 5 – Dates & balance badge
+      const rightX = page.w - page.m;
+      const topY = y; // align with bill/ship block
+      doc.setFontSize(10); doc.text('Date:', rightX-160, topY);
+      doc.text(invDate, rightX, topY, {align:'right'});
+      doc.text('Due Date:', rightX-160, topY+14);
+      doc.text(dueDate, rightX, topY+14, {align:'right'});
+      // badge
+      doc.setDrawColor(230); doc.setFillColor(245); doc.roundedRect(rightX-180, topY+30, 180, 26, 4, 4, 'F');
+      doc.setFont(undefined,'bold'); doc.text('Balance Due', rightX-170, topY+47);
+      doc.text(total, rightX-10, topY+47, { align:'right' });
 
-            downloadBtn.addEventListener('click', generatePDF);
+      y = y + 16 + maxLines*14 + 30;
 
-            itemsTableBody.addEventListener('input', (e) => {
-                if (e.target.classList.contains('item-quantity') || e.target.classList.contains('item-rate')) {
-                    const row = e.target.closest('.item-row');
-                    updateItemAmount(row);
-                }
-            });
+      // divider
+      doc.setDrawColor(230); doc.line(page.m, y, rightX, y); y += 16;
 
-            itemsTableBody.addEventListener('click', (e) => {
-                if (e.target.classList.contains('remove-item-btn')) {
-                    const row = e.target.closest('.item-row');
-                    if (itemsTableBody.childElementCount > 1) {
-                        row.remove();
-                        updateTotals();
-                    } else {
-                        showMessage("Cannot remove the last item. At least one line is required.");
-                    }
-                }
-            });
+      // ZONE 6 – Items table via autoTable
+      const head = [['Item','Currency','Quantity','Rate','Amount']];
+      const body = [...tbody.querySelectorAll('tr')].map(tr=>{
+        const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
+        const amt = tr.querySelector('.amount').textContent;
+        return [desc.value, currEl.value, (parseFloat(qtyEl.value)||0).toString(), (parseFloat(rateEl.value)||0).toFixed(2), parseFloat(amt).toFixed(2)];
+      });
+      doc.autoTable({
+        startY: y,
+        head: head,
+        body: body,
+        theme:'grid',
+        styles:{ font:'helvetica', fontSize:10, cellPadding:6, lineColor:[230,230,230], textColor:30 },
+        headStyles:{ fillColor:[248,250,252], textColor:60, lineColor:[230,230,230] },
+        columnStyles:{ 2:{ halign:'right' },3:{ halign:'right' },4:{ halign:'right' }},
+        margin:{ left: page.m, right: page.m }
+      });
+      y = doc.lastAutoTable.finalY + 18;
 
-            // Functions
-            function addItemRow(description, currency, quantity, rate) {
-                const newRow = document.createElement('tr');
-                newRow.className = 'item-row transition-all duration-200 hover:bg-gray-50';
-                const amount = (quantity * rate).toFixed(2);
-                newRow.innerHTML = `
-                    <td class="p-3">
-                        <input type="text" class="item-description w-full p-2 bg-transparent" value="${description}">
-                    </td>
-                    <td class="p-3 text-center">
-                        <input type="text" class="item-currency w-10 text-center bg-transparent" value="${currency}">
-                    </td>
-                    <td class="p-3 text-right">
-                        <input type="number" class="item-quantity table-cell-input" value="${quantity}" step="0.01">
-                    </td>
-                    <td class="p-3 text-right">
-                        <input type="number" class="item-rate table-cell-input" value="${rate}" step="0.01">
-                    </td>
-                    <td class="p-3 text-right relative">
-                        <span class="item-amount font-semibold text-gray-800">${amount}</span>
-                        <button class="remove-item-btn absolute right-2 top-1/2 -translate-y-1/2 p-1 text-red-500 rounded-full hover:bg-gray-200 transition-colors">
-                            &times;
-                        </button>
-                    </td>
-                `;
-                itemsTableBody.appendChild(newRow);
-            }
+      // Totals row
+      const totLabelX = rightX-160; doc.setFont(undefined,'bold'); doc.text('Total:', totLabelX, y);
+      doc.text(total, rightX, y, {align:'right'});
+      y += 24;
 
-            function updateItemAmount(row) {
-                const quantity = parseFloat(row.querySelector('.item-quantity').value) || 0;
-                const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
-                const amount = quantity * rate;
-                row.querySelector('.item-amount').textContent = amount.toFixed(2);
-                updateTotals();
-            }
+      // ZONE 7 – Notes + Payment details
+      doc.setFont(undefined,'bold'); doc.text('Notes', page.m, y);
+      doc.setFont(undefined,''); doc.setFontSize(10);
+      const notes = document.getElementById('notes').value;
+      const noteLines = doc.splitTextToSize(notes, 260);
+      doc.text(noteLines, page.m, y+16);
 
-            function updateTotals() {
-                let total = 0;
-                let currencySymbol = document.querySelector('.item-currency')?.value || '$';
+      // Payment details right side
+      doc.setFont(undefined,'bold'); doc.text('Payment details', page.w/2, y);
+      doc.setFont(undefined,'');
+      const pay = [
+        'Full name: ADOLFO ANDRÉS HINCAPIE GARCIA',
+        'Bank name: Bancolombia, Panama, S. A',
+        'Bank Address: CL 47 AQUILINO DE LA GUARDIA, PH PLAZA MARBELLA',
+        'Account number: 80100027312',
+        'SWIFT code: COLOPAPAXXX',
+        'Account type: Savings',
+        'ID number: 1044500384'];
+      pay.forEach((t,i)=> doc.text(t, page.w/2, y+16+i*14));
 
-                document.querySelectorAll('.item-amount').forEach(el => {
-                    total += parseFloat(el.textContent) || 0;
-                });
-                
-                totalEl.textContent = `${currencySymbol}${total.toFixed(2)}`;
-                balanceDueEl.textContent = `${currencySymbol}${total.toFixed(2)}`;
-                balanceDueSummaryEl.textContent = `${currencySymbol}${total.toFixed(2)}`;
-            }
-
-            function generatePDF() {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                const margin = 20;
-                let y = margin;
-                const fontSize = 12;
-                const lineHeight = 10;
-                const columnMargin = 50;
-
-                const invoiceData = getInvoiceData();
-                const currencySymbol = invoiceData.items[0]?.currency || '$';
-
-                // Invoice Header
-                doc.setFontSize(24);
-                doc.setFont("helvetica", "bold");
-                doc.text("INVOICE", 150, y);
-                doc.setFontSize(14);
-                doc.text(`#${invoiceData.invoiceNumber}`, 150, y + 8);
-                y += 20;
-
-                // Company and Client Info
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "normal");
-                doc.text(`Date: ${invoiceData.invoiceDate}`, 150, y);
-                doc.text(`Due Date: ${invoiceData.dueDate}`, 150, y + lineHeight);
-                y += 20;
-
-                doc.setFontSize(12);
-                doc.setFont("helvetica", "bold");
-                doc.text("From:", margin, y);
-                doc.text("Bill To:", 80, y);
-                doc.text("Ship To:", 140, y);
-                y += 5;
-
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "normal");
-                
-                // Get hardcoded "From" address text
-                const fromElement = document.querySelector('.space-y-1');
-                const fromText = fromElement ? fromElement.innerText : '';
-                const fromLines = doc.splitTextToSize(fromText, 60);
-
-                const billToLines = doc.splitTextToSize(invoiceData.billTo, 60);
-                const shipToLines = doc.splitTextToSize(invoiceData.shipTo, 60);
-
-                let maxLines = Math.max(fromLines.length, billToLines.length, shipToLines.length);
-
-                for(let i = 0; i < maxLines; i++) {
-                    doc.text(fromLines[i] || '', margin, y + (i * 4));
-                    doc.text(billToLines[i] || '', 80, y + (i * 4));
-                    doc.text(shipToLines[i] || '', 140, y + (i * 4));
-                }
-                y += maxLines * 4 + 10;
-
-                // Items Table Header
-                doc.setFillColor(243, 244, 246);
-                doc.rect(margin, y, 170, 8, 'F');
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "bold");
-                doc.setTextColor(55, 65, 81);
-                doc.text("Item", margin + 2, y + 5);
-                doc.text("Currency", 70, y + 5, { align: "center" });
-                doc.text("Quantity", 110, y + 5, { align: "right" });
-                doc.text("Rate", 140, y + 5, { align: "right" });
-                doc.text("Amount", 185, y + 5, { align: "right" });
-                y += 10;
-                doc.setTextColor(0, 0, 0);
-                
-                // Items Table Rows
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "normal");
-                invoiceData.items.forEach(item => {
-                    doc.text(item.description, margin + 2, y + 5);
-                    doc.text(item.currency, 70, y + 5, { align: "center" });
-                    doc.text(item.quantity.toString(), 110, y + 5, { align: "right" });
-                    doc.text(item.rate.toFixed(2), 140, y + 5, { align: "right" });
-                    doc.text(item.amount.toFixed(2), 185, y + 5, { align: "right" });
-                    y += 8;
-                });
-
-                y += 15;
-
-                // Notes
-                doc.setFontSize(12);
-                doc.setFont("helvetica", "bold");
-                doc.text("Notes:", margin, y);
-                y += 5;
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "normal");
-                doc.text(invoiceData.notes, margin, y, { maxWidth: 100 });
-                
-                // Totals
-                doc.setFontSize(10);
-                doc.setFont("helvetica", "bold");
-                doc.text("Total:", 140, y);
-                doc.text(`${currencySymbol}${invoiceData.total.toFixed(2)}`, 185, y, { align: "right" });
-                
-                doc.save('invoice.pdf');
-            }
-        };
-    </script>
+      doc.save('invoice.pdf');
+    });
+  </script>
 </body>
 </html>
