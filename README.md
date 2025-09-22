@@ -1,1 +1,1 @@
-# invoice-generator
+# invoice-client-generator
