@@ -146,7 +146,6 @@ https://docs.google.com/spreadsheets/d/1ekwJ_L6Ckn_9ffMvem8OcqgF5B9HNOI3n3/edit<
             <p class="text-slate-600 text-sm">Signature</p>
             <div class="mt-2 h-16 border-b border-dashed border-slate-300"></div>
           </div>
-          <!-- Modified: Replaced static <p> with a textarea -->
           <div>
             <textarea id="payment-details" rows="7" class="mt-2 w-full bg-transparent resize-y text-slate-700 panel p-3" placeholder="Enter payment instructions here...">Full name: ADOLFO ANDRÉS HINCAPIE GARCIA
 Bank name: Bancolombia, Panama, S. A
@@ -168,7 +167,6 @@ ID number: 1044500384</textarea>
       el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2200);
     }
 
-    // All the logic and event listeners are placed inside window.onload to ensure the DOM is ready.
     window.onload = function() {
       // HTML element references
       const tbody = document.getElementById('items-table-body');
@@ -181,7 +179,6 @@ ID number: 1044500384</textarea>
       const loadSelect = document.getElementById('load-invoices');
       const addItemBtn = document.getElementById('add-item');
       const downloadBtn = document.getElementById('download-btn');
-      // New reference for payment details
       const paymentDetailsTextarea = document.getElementById('payment-details');
 
 
@@ -312,9 +309,6 @@ ID number: 1044500384</textarea>
         }
       });
       taxInput.addEventListener('input', recalc);
-      // Add event listener for the new payment details textarea to trigger save on input if desired,
-      // though typically saving is manual via button or autosave.
-      // paymentDetailsTextarea.addEventListener('input', saveLocal); 
       
       // Initial setup
       loadLocalList();
@@ -326,9 +320,10 @@ ID number: 1044500384</textarea>
 
       // PDF generation following the 7-zone layout
       downloadBtn.addEventListener('click', ()=>{
-        const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
+        const { jsPDF } = window.jspdf; 
+        const doc = new jsPDF({ unit:'pt', format:'a4' });
         const page = { w: doc.internal.pageSize.getWidth(), h: doc.internal.pageSize.getHeight(), m: 40 };
-        let y = page.m;
+        let y = page.m; // Current vertical position, starting from top margin
 
         const invoiceNumber = document.getElementById('invoice-number').value || '';
         const billTo = document.getElementById('bill-to').value.trim();
@@ -339,74 +334,118 @@ ID number: 1044500384</textarea>
         const notes = document.getElementById('notes').value;
         const taxAmount = document.getElementById('tax-amount').textContent;
         const subtotal = document.getElementById('subtotal').textContent;
-        // Get dynamic payment details
-        const paymentDetails = paymentDetailsTextarea.value;
+        const paymentDetails = paymentDetailsTextarea.value; // Get dynamic payment details
 
-        // Fonts
-        doc.setFont('helvetica','');
+        // --- Font Setup (Ensuring Helvetica consistently) ---
+        doc.setFont('helvetica', 'normal'); // Set base font to Helvetica normal
+        const text_line_height = 14; // Standard line height for smaller text
 
-        // ZONE 1 – From (Seller)
+        // --- ZONE 1 – From (Seller) ---
+        let zone1_y_start = y;
         doc.setFontSize(10); doc.setTextColor(100);
         doc.text('From', page.m, y);
-        doc.setTextColor(30); doc.setFontSize(12); doc.setFont(undefined,'bold');
-        doc.text('Adolfo Andrés Hincapié Garcia', page.m, y+16);
-        doc.setFont(undefined,''); doc.setFontSize(10); doc.setTextColor(60);
+        y += 16; // space for "From" label
+
+        doc.setTextColor(30); doc.setFontSize(12); doc.setFont('helvetica','bold');
+        doc.text('Adolfo Andrés Hincapié Garcia', page.m, y);
+        y += text_line_height; // space for name
+
+        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60);
         const fromLines = [
           'Legal Address: CLL 34 #86A-41, Torre 7, 401. Medellín, Colombia',
           'Postal Code: 050032',
           'Phone: +57 3507439527',
-          'Email: bandreshin@gmail.com'];
-        fromLines.forEach((t,i)=>doc.text(t, page.m, y+34+i*14));
+          'Email: bandreshin@gmail.com'
+        ];
+        fromLines.forEach(line => {
+            doc.text(line, page.m, y);
+            y += text_line_height;
+        });
+        let zone1_bottom_y = y; // Keep track of ZONE 1's bottom edge
 
-        // ZONE 4 – Title & number
-        doc.setTextColor(20); doc.setFontSize(26); doc.setFont(undefined,'bold');
-        doc.text('INVOICE', page.w-page.m, y, { align:'right' });
-        doc.setFontSize(12); doc.setFont(undefined,'');
-        doc.text('#'+invoiceNumber, page.w-page.m, y+18, { align:'right' });
-        y += 80;
+        // --- ZONE 4 – Title & number ---
+        let zone4_y_start = page.m; // Starts at the same Y as ZONE 1
+        doc.setTextColor(20); doc.setFontSize(26); doc.setFont('helvetica','bold');
+        doc.text('INVOICE', page.w-page.m, zone4_y_start, { align:'right' });
+        doc.setFontSize(12); doc.setFont('helvetica','normal');
+        doc.text('#'+invoiceNumber, page.w-page.m, zone4_y_start + 26 + 6, { align:'right' }); // 26 is rough height of 26pt text
+        let zone4_bottom_y = zone4_y_start + 26 + 6 + text_line_height; // rough estimate for its bottom
 
-        // ZONES 2 & 3 – Bill/Ship
-        doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Bill To', page.m, y);
+        // Update current Y to be below both ZONE 1 and ZONE 4, plus some padding
+        y = Math.max(zone1_bottom_y, zone4_bottom_y) + 30; 
+
+
+        // --- ZONES 2 & 3 – Bill/Ship ---
+        let zone2_3_y_start = y;
+        doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(30);
+        doc.text('Bill To', page.m, y);
         doc.text('Ship To', page.w/2, y);
-        doc.setFont(undefined,''); doc.setFontSize(10);
-        const billLines = doc.splitTextToSize(billTo, page.w/2 - page.m - 10);
-        const shipLines = doc.splitTextToSize(shipTo, page.w/2 - page.m - 10);
-        const maxLines = Math.max(billLines.length, shipLines.length);
-        billLines.forEach((t,i)=> doc.text(t, page.m, y+16+i*14));
-        shipLines.forEach((t,i)=> doc.text(t, page.w/2, y+16+i*14));
+        y += 16; // space for titles
 
-        // ZONE 5 – Dates & balance badge
-        const rightX = page.w - page.m;
-        const topY = y; // align with bill/ship block
-        doc.setFontSize(10); doc.text('Date:', rightX-160, topY);
-        doc.text(invDate, rightX, topY, {align:'right'});
-        doc.text('Due Date:', rightX-160, topY+14);
-        doc.text(dueDate, rightX, topY+14, {align:'right'});
-        // badge
-        doc.setDrawColor(230); doc.setFillColor(245); doc.roundedRect(rightX-180, topY+30, 180, 26, 4, 4, 'F');
-        doc.setFont(undefined,'bold'); doc.text('Balance Due', rightX-170, topY+47);
-        doc.text(total, rightX-10, topY+47, { align:'right' });
+        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60);
+        const billToWidth = (page.w/2) - page.m - 10; // Width for text splitting
+        const shipToWidth = (page.w/2) - page.m - 10;
+        const billLines = doc.splitTextToSize(billTo, billToWidth);
+        const shipLines = doc.splitTextToSize(shipTo, shipToWidth);
+        const maxLines_2_3 = Math.max(billLines.length, shipLines.length);
 
-        y = y + 16 + maxLines*14 + 30;
+        billLines.forEach((t,i)=> doc.text(t, page.m, zone2_3_y_start + 16 + i * text_line_height));
+        shipLines.forEach((t,i)=> doc.text(t, page.w/2, zone2_3_y_start + 16 + i * text_line_height));
         
-        // ZONE 6 – Items table via autoTable
+        y = zone2_3_y_start + 16 + maxLines_2_3 * text_line_height + 15; // Update y after ZONE 2/3, with padding
+
+
+        // --- ZONE 5 – Dates & balance badge ---
+        // This section is supposed to be below ZONE 2 & 3 in the grid
+        let zone5_y_start = y; 
+        const rightColX = page.w / 2; // Roughly where the right column starts in the grid
+
+        // Dates
+        doc.setFontSize(10); doc.setTextColor(100); doc.setFont('helvetica','normal');
+        doc.text('Date:', rightColX, y);
+        doc.text(invDate, page.w-page.m, y, {align:'right'});
+        y += text_line_height;
+
+        doc.text('Due Date:', rightColX, y);
+        doc.text(dueDate, page.w-page.m, y, {align:'right'});
+        y += 20; // Additional space before badge
+
+        // Balance badge
+        const badgeWidth = 180;
+        const badgeHeight = 26;
+        const badgeX = page.w - page.m - badgeWidth;
+        doc.setDrawColor(230); doc.setFillColor(245,245,245); // Lighter gray for fill
+        doc.roundedRect(badgeX, y, badgeWidth, badgeHeight, 4, 4, 'F');
+        doc.setTextColor(30); doc.setFont('helvetica','bold'); 
+        doc.text('Balance Due', badgeX + 10, y + (badgeHeight / 2) + 3); // Centered vertically
+        doc.text(total, page.w - page.m - 10, y + (badgeHeight / 2) + 3, { align:'right' });
+        
+        y += badgeHeight + 30; // Update y after badge, plus padding
+
+        // --- ZONE 6 – Items table via autoTable ---
         const head = [['Item','Currency','Quantity','Rate','Amount']];
         const body = [...tbody.querySelectorAll('tr')].map(tr=>{
           const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
           const amt = tr.querySelector('.amount').textContent;
-          return [desc.value, currEl.value, (parseFloat(qtyEl.value)||0).toString(), (parseFloat(rateEl.value)||0).toFixed(2), parseFloat(amt).toFixed(2)];
+          return [
+            desc.value, 
+            currEl.value, 
+            (parseFloat(qtyEl.value)||0).toString(), 
+            (parseFloat(rateEl.value)||0).toFixed(2), 
+            parseFloat(amt).toFixed(2)
+          ];
         });
         doc.autoTable({
           startY: y,
           head: head,
           body: body,
           theme:'grid',
-          styles:{ font:'helvetica', fontSize:10, cellPadding:6, lineColor:[230,230,230], textColor:30 },
-          headStyles:{ fillColor:[248,250,252], textColor:60, lineColor:[230,230,230] },
+          styles:{ font:'helvetica', fontSize:10, cellPadding:6, lineColor:[230,230,230], textColor:30, fontStyle:'normal' },
+          headStyles:{ fillColor:[248,250,252], textColor:60, lineColor:[230,230,230], fontStyle:'bold' },
           columnStyles:{ 2:{ halign:'right' },3:{ halign:'right' },4:{ halign:'right' }},
           margin:{ left: page.m, right: page.m }
         });
-        y = doc.lastAutoTable.finalY + 18;
+        y = doc.lastAutoTable.finalY + 18; // Update y after the table
 
         // Totals rows
         const totalsTableData = [['Subtotal', subtotal], ['Tax', taxAmount], ['Total', total]];
@@ -414,31 +453,44 @@ ID number: 1044500384</textarea>
           startY: y,
           body: totalsTableData,
           theme: 'plain',
-          styles: { fontSize: 10, cellPadding: 2, textColor: 30 },
+          styles: { font:'helvetica', fontSize: 10, cellPadding: 2, textColor: 30, fontStyle:'normal' },
           columnStyles: { 1: { halign: 'right' } },
           bodyStyles: { fontStyle: 'bold' },
-          margin: { left: page.w - 180, right: page.m },
+          margin: { left: page.w - 180, right: page.m }, // Align to right side
           didDrawCell: (data) => {
-            if (data.row.index === 1) { // Apply line above "Total" or "Balance Due"
+            // Apply line above "Tax" row
+            if (data.row.index === 1 && data.column.index === 0) { 
               doc.setDrawColor(230);
-              doc.line(data.cell.x, data.cell.y, data.cell.x + data.cell.width, data.cell.y);
+              doc.line(data.cell.x, data.cell.y, data.cell.x + data.cell.width + 80, data.cell.y); // Extend line across both cells
             }
           }
         });
-        y = doc.lastAutoTable.finalY + 24;
+        y = doc.lastAutoTable.finalY + 24; // Update y after totals
 
+        // --- ZONE 7 – Notes + Payment details ---
+        const leftColWidth = (page.w/2) - page.m - 10;
+        const rightColX_zone7 = page.w / 2;
 
-        // ZONE 7 – Notes + Payment details
-        doc.setFont(undefined,'bold'); doc.text('Notes', page.m, y);
-        doc.setFont(undefined,''); doc.setFontSize(10);
-        const noteLines = doc.splitTextToSize(notes, page.w/2 - page.m - 10);
-        doc.text(noteLines, page.m, y+16);
+        doc.setFont('helvetica','bold'); doc.setTextColor(30); doc.text('Notes', page.m, y);
+        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60);
+        const noteLines = doc.splitTextToSize(notes, leftColWidth);
+        doc.text(noteLines, page.m, y + text_line_height);
+        let notes_bottom_y = y + text_line_height + (noteLines.length > 0 ? (noteLines.length - 1) * text_line_height : 0);
+
+        doc.setFont('helvetica','bold'); doc.setTextColor(30); doc.text('Payment details', rightColX_zone7, y);
+        doc.setFont('helvetica','normal');
+        const paymentDetailsLines = doc.splitTextToSize(paymentDetails, leftColWidth); // Using same width as notes for balance
+        paymentDetailsLines.forEach((line,i)=> doc.text(line, rightColX_zone7, y + text_line_height + i * text_line_height));
+        let payment_details_bottom_y = y + text_line_height + (paymentDetailsLines.length > 0 ? (paymentDetailsLines.length - 1) * text_line_height : 0);
         
-        doc.setFont(undefined,'bold'); doc.text('Payment details', page.w/2, y);
-        doc.setFont(undefined,'');
-        // MODIFIED: Use the content of the paymentDetailsTextarea for PDF
-        const paymentDetailsLines = doc.splitTextToSize(paymentDetails, page.w/2 - page.m - 10);
-        paymentDetailsLines.forEach((t,i)=> doc.text(t, page.w/2, y+16+i*14));
+        y = Math.max(notes_bottom_y, payment_details_bottom_y) + 30; // Final Y update for next content if any
+
+        // Optional: Signature line (can be static or dynamic)
+        doc.setFontSize(10); doc.setTextColor(60);
+        doc.text('Signature', page.m, y);
+        doc.setDrawColor(180); // Lighter line for signature
+        doc.line(page.m, y + 20, page.m + 200, y + 20); // Draw a line for signature
+
 
         doc.save('invoice-client.pdf');
       });
