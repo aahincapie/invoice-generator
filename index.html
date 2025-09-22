@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Invoice – 7 Zones Layout</title>
+  <title>Invoice – Generator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,6 +38,7 @@
     <button id="save-btn" class="h-10 px-4 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700">
       Save
     </button>
+    <button id="download-btn" class="h-10 px-4 rounded-lg bg-sky-600 text-white font-semibold hover:bg-sky-700">Download PDF</button>
   </div>
 
   <div class="sheet" id="invoice">
@@ -45,7 +46,7 @@
       <!-- ZONE 1: From (Seller) -->
       <section class="zone-1">
         <div class="flex items-start gap-4">
-          <div class="h-12 w-12 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold">A</div>
+          <div class="h-12 w-12 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold">AHI</div>
           <div>
             <p class="text-sm text-slate-500">From</p>
             <p class="font-semibold text-slate-800">Adolfo Andrés Hincapié Garcia</p>
@@ -133,9 +134,6 @@ https://docs.google.com/spreadsheets/d/1ekwJ_L6Ckn_9ffMvem8OcqgF5B9HNOI3n3/edit<
               <div class="flex justify-between text-lg"><span class="font-medium">Total</span><span id="total" class="font-bold">$0.00</span></div>
               <div class="flex justify-between text-lg"><span class="font-medium">Balance Due</span><span id="balance-due-summary" class="font-bold">$0.00</span></div>
             </div>
-            <div class="mt-3 flex gap-3">
-              <button id="download-btn" class="flex-1 h-10 rounded-lg bg-sky-600 text-white font-semibold hover:bg-sky-700">Download PDF</button>
-            </div>
           </div>
         </div>
       </section>
@@ -148,268 +146,303 @@ https://docs.google.com/spreadsheets/d/1ekwJ_L6Ckn_9ffMvem8OcqgF5B9HNOI3n3/edit<
             <p class="text-slate-600 text-sm">Signature</p>
             <div class="mt-2 h-16 border-b border-dashed border-slate-300"></div>
           </div>
-          <div class="text-sm text-slate-700">
-            <p>Full name: ADOLFO ANDRÉS HINCAPIE GARCIA</p>
-            <p>Bank name: Bancolombia, Panama, S. A</p>
-            <p>Bank Address: CL 47 AQUILINO DE LA GUARDIA, PH PLAZA MARBELLA</p>
-            <p>Account number: 80100027312</p>
-            <p>SWIFT code: COLOPAPAXXX</p>
-            <p>Account type: Savings</p>
-            <p>ID number: 1044500384</p>
+          <!-- Modified: Replaced static <p> with a textarea -->
+          <div>
+            <textarea id="payment-details" rows="7" class="mt-2 w-full bg-transparent resize-y text-slate-700 panel p-3" placeholder="Enter payment instructions here...">Full name: ADOLFO ANDRÉS HINCAPIE GARCIA
+Bank name: Bancolombia, Panama, S. A
+Bank Address: CL 47 AQUILINO DE LA GUARDIA, PH PLAZA MARBELLA
+Account number: 80100027312
+SWIFT code: COLPAPAPXXX
+Account type: Savings
+ID number: 1044500384</textarea>
           </div>
-        </div>
-      </section>
-      <section class="zone-6">
-        <!-- ... table and totals ... -->
-        <div class="mt-3 flex gap-3">
-          <button id="download-btn" class="flex-1 h-10 rounded-lg bg-sky-600 text-white font-semibold hover:bg-sky-700">Download PDF</button>
         </div>
       </section>
     </div>
   </div>
-
   <script>
-    const STORAGE_KEY = 'invoices-7zones';
-    const tbody = document.getElementById('items-table-body');
-    const subtotalEl = document.getElementById('subtotal');
-    const totalEl = document.getElementById('total');
-    const balTop = document.getElementById('balance-due');
-    const balSum = document.getElementById('balance-due-summary');
-    const taxInput = document.getElementById('tax');
-    const saveBtn = document.getElementById('save-btn');
-    const loadSelect = document.getElementById('load-invoices');
-
-    function getInvoiceData(){
-      const items = [...tbody.querySelectorAll('tr')].map(tr=>{
-        const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
-        const amount = tr.querySelector('.amount').textContent;
-        return { description: desc.value, currency: currEl.value, quantity: parseFloat(qtyEl.value)||0, rate: parseFloat(rateEl.value)||0, amount: parseFloat(amount)||0 };
-      });
-      return {
-        invoiceNumber: document.getElementById('invoice-number')?.value,
-        invoiceDate: document.getElementById('invoice-date')?.value,
-        dueDate: document.getElementById('due-date')?.value,
-        billTo: document.getElementById('bill-to')?.value,
-        shipTo: document.getElementById('ship-to')?.value,
-        notes: document.getElementById('notes')?.value,
-        subtotal: subtotalEl?.textContent,
-        total: totalEl?.textContent,
-        items,
-        createdAt: new Date().toISOString()
-      };
-    }
-
-    function populateInvoice(data){
-      if(!data) return;
-      document.getElementById('invoice-number').value = data.invoiceNumber||'';
-      document.getElementById('invoice-date').value = data.invoiceDate||'';
-      document.getElementById('due-date').value = data.dueDate||'';
-      document.getElementById('bill-to').value = data.billTo||'';
-      document.getElementById('ship-to').value = data.shipTo||'';
-      document.getElementById('notes').value = data.notes||'';
-      tbody.innerHTML='';
-      (data.items||[]).forEach(it=> addRow(it.description,it.currency,it.quantity,it.rate));
-      if((data.items||[]).length===0) addRow('','USD $',0,0);
-      recalc();
-    }
-
-    function saveLocal(){
-      const list = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-      const entry = { id: Date.now().toString(), ...getInvoiceData() };
-      list.push(entry);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-      loadLocalList();
-      toast('Invoice saved locally');
-    }
-
-    function loadLocalList(){
-      const list = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-      loadSelect.innerHTML = '<option value="">-- Select an Invoice --</option>';
-      list.forEach(inv=>{
-        const opt = document.createElement('option');
-        const dt = inv.invoiceDate || (inv.createdAt ? inv.createdAt.slice(0,10) : '');
-        opt.value = inv.id;
-        opt.textContent = `Invoice #${inv.invoiceNumber||'—'} — ${dt}`;
-        opt.dataset.payload = JSON.stringify(inv);
-        loadSelect.appendChild(opt);
-      });
-    }
-
+    // Helper function for a quick pop-up message
     function toast(msg){
       const el=document.createElement('div');
       el.className='fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-lg shadow-lg';
       el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2200);
     }
 
-    saveBtn?.addEventListener('click', saveLocal);
-    loadSelect?.addEventListener('change', e=>{
-      const opt = e.target.selectedOptions[0];
-      if (opt?.dataset?.payload) populateInvoice(JSON.parse(opt.dataset.payload));
-    });
+    // All the logic and event listeners are placed inside window.onload to ensure the DOM is ready.
+    window.onload = function() {
+      // HTML element references
+      const tbody = document.getElementById('items-table-body');
+      const subtotalEl = document.getElementById('subtotal');
+      const totalEl = document.getElementById('total');
+      const balTop = document.getElementById('balance-due');
+      const balSum = document.getElementById('balance-due-summary');
+      const taxInput = document.getElementById('tax');
+      const saveBtn = document.getElementById('save-btn');
+      const loadSelect = document.getElementById('load-invoices');
+      const addItemBtn = document.getElementById('add-item');
+      const downloadBtn = document.getElementById('download-btn');
+      // New reference for payment details
+      const paymentDetailsTextarea = document.getElementById('payment-details');
 
-    loadLocalList();
-  </script>
-  <script>
-    const tbody = document.getElementById('items-table-body');
-    const subtotalEl = document.getElementById('subtotal');
-    const totalEl = document.getElementById('total');
-    const balTop = document.getElementById('balance-due');
-    const balSum = document.getElementById('balance-due-summary');
-    const taxInput = document.getElementById('tax');
 
-    const money = (n, cur='USD $') => cur + (Number(n||0)).toFixed(2);
+      // Money formatter
+      const money = (n, cur = 'USD $') => cur + (Number(n || 0)).toFixed(2);
 
-    function addRow(desc='', cur='USD $', qty=0, rate=0){
-      const tr = document.createElement('tr');
-      const amount = (qty*rate).toFixed(2);
-      tr.className = 'hover:bg-slate-50';
-      tr.innerHTML = `
-        <td class="p-3"><input class="w-full bg-transparent" value="${desc}"></td>
-        <td class="p-3 text-center"><input class="w-20 text-center bg-transparent" value="${cur}"></td>
-        <td class="p-3 text-right"><input type="number" step="0.01" class="number-input w-28 text-right bg-transparent" value="${qty}"></td>
-        <td class="p-3 text-right"><input type="number" step="0.01" class="number-input w-28 text-right bg-transparent" value="${rate}"></td>
-        <td class="p-3 text-right font-semibold amount">${amount}</td>
-        <td class="text-center"><button class="px-2 text-rose-600 hover:underline" title="Remove">×</button></td>`;
-      tbody.appendChild(tr);
-    }
+      // Adds a new row to the table
+      function addRow(desc = '', cur = 'USD $', qty = 0, rate = 0) {
+        const tr = document.createElement('tr');
+        const amount = (qty * rate).toFixed(2);
+        tr.className = 'hover:bg-slate-50';
+        tr.innerHTML = `
+          <td class="p-3"><input class="w-full bg-transparent" value="${desc}"></td>
+          <td class="p-3 text-center"><input class="w-20 text-center bg-transparent" value="${cur}"></td>
+          <td class="p-3 text-right"><input type="number" step="0.01" class="number-input w-28 text-right bg-transparent" value="${qty}"></td>
+          <td class="p-3 text-right"><input type="number" step="0.01" class="number-input w-28 text-right bg-transparent" value="${rate}"></td>
+          <td class="p-3 text-right font-semibold amount">${amount}</td>
+          <td class="text-center"><button class="px-2 text-rose-600 hover:underline" title="Remove">×</button></td>`;
+        tbody.appendChild(tr);
+        recalc();
+      }
 
-    function recalc(){
-      let sub=0; let cur = tbody.querySelector('tr input:nth-child(2)')?.value || 'USD $';
-      [...tbody.querySelectorAll('tr')].forEach(tr=>{
-        const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
-        const qty=parseFloat(qtyEl.value)||0; const rate=parseFloat(rateEl.value)||0;
-        const amt=qty*rate; sub+=amt; tr.querySelector('.amount').textContent=amt.toFixed(2);
+      // Recalculates all totals
+      function recalc() {
+        let sub = 0;
+        let cur = tbody.querySelector('tr input:nth-child(2)')?.value || 'USD $';
+        
+        [...tbody.querySelectorAll('tr')].forEach(tr => {
+          const [desc, currEl, qtyEl, rateEl] = tr.querySelectorAll('input');
+          const qty = parseFloat(qtyEl.value) || 0;
+          const rate = parseFloat(rateEl.value) || 0;
+          const amt = qty * rate;
+          sub += amt;
+          tr.querySelector('.amount').textContent = amt.toFixed(2);
+        });
+        const taxPct = parseFloat(taxInput.value) || 0;
+        const taxAmt = sub * (taxPct / 100);
+        const tot = sub + taxAmt;
+        
+        subtotalEl.textContent = money(sub, cur + ' ');
+        document.getElementById('tax-amount').textContent = money(taxAmt, cur + ' ');
+        totalEl.textContent = money(tot, cur + ' ');
+        balTop.textContent = money(tot, cur + ' ');
+        balSum.textContent = money(tot, cur + ' ');
+      }
+
+      // Get invoice data from the form fields
+      function getInvoiceData(){
+        const items = [...tbody.querySelectorAll('tr')].map(tr=>{
+          const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
+          const amount = tr.querySelector('.amount').textContent;
+          return { description: desc.value, currency: currEl.value, quantity: parseFloat(qtyEl.value)||0, rate: parseFloat(rateEl.value)||0, amount: parseFloat(amount)||0 };
+        });
+        return {
+          invoiceNumber: document.getElementById('invoice-number')?.value,
+          invoiceDate: document.getElementById('invoice-date')?.value,
+          dueDate: document.getElementById('due-date')?.value,
+          billTo: document.getElementById('bill-to')?.value,
+          shipTo: document.getElementById('ship-to')?.value,
+          notes: document.getElementById('notes')?.value,
+          tax: parseFloat(taxInput.value) || 0, // ADDED: Save the tax value
+          paymentDetails: paymentDetailsTextarea?.value, // ADDED: Save payment details
+          subtotal: subtotalEl?.textContent,
+          total: totalEl?.textContent,
+          items,
+          createdAt: new Date().toISOString()
+        };
+      }
+
+      // Populate the form with invoice data
+      function populateInvoice(data){
+        if(!data) return;
+        document.getElementById('invoice-number').value = data.invoiceNumber||'';
+        document.getElementById('invoice-date').value = data.invoiceDate||'';
+        document.getElementById('due-date').value = data.dueDate||'';
+        document.getElementById('bill-to').value = data.billTo||'';
+        document.getElementById('ship-to').value = data.shipTo||'';
+        document.getElementById('notes').value = data.notes||'';
+        document.getElementById('tax').value = data.tax || 0; // ADDED: Load the tax value
+        paymentDetailsTextarea.value = data.paymentDetails || ''; // ADDED: Load payment details
+        tbody.innerHTML='';
+        (data.items||[]).forEach(it=> addRow(it.description,it.currency,it.quantity,it.rate));
+        if((data.items||[]).length===0) addRow('','USD $',0,0);
+        recalc();
+      }
+      // Local storage functions
+      const STORAGE_KEY = 'invoices-7zones';
+      function saveLocal(){
+        const list = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+        const entry = { id: Date.now().toString(), ...getInvoiceData() };
+        list.push(entry);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        loadLocalList();
+        toast('Invoice saved locally');
+      }
+
+      function loadLocalList(){
+        const list = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+        loadSelect.innerHTML = '<option value="">-- Select an Invoice --</option>';
+        list.forEach(inv=>{
+          const opt = document.createElement('option');
+          const dt = inv.invoiceDate || (inv.createdAt ? inv.createdAt.slice(0,10) : '');
+          opt.value = inv.id;
+          opt.textContent = `Invoice #${inv.invoiceNumber||'—'} — ${dt}`;
+          opt.dataset.payload = JSON.stringify(inv);
+          loadSelect.appendChild(opt);
+        });
+      }
+
+      // Event listeners
+      saveBtn?.addEventListener('click', saveLocal);
+      loadSelect?.addEventListener('change', e=>{
+        const opt = e.target.selectedOptions[0];
+        if (opt?.dataset?.payload) populateInvoice(JSON.parse(opt.dataset.payload));
       });
-      const taxPct = parseFloat(taxInput.value)||0; const taxAmt = sub*(taxPct/100);
-      const tot = sub+taxAmt;
-      subtotalEl.textContent = money(sub, cur+ ' ');
-      document.getElementById('tax-amount').textContent = money(taxAmt, cur+ ' ');
-      totalEl.textContent = money(tot, cur+ ' ');
-      balTop.textContent = money(tot, cur+ ' ');
-      balSum.textContent = money(tot, cur+ ' ');
-    }
-
-    document.getElementById('add-item').addEventListener('click',()=>{addRow('', 'USD $', 0, 0)});
-    tbody.addEventListener('input', e=>{ if(e.target.tagName==='INPUT') recalc(); });
-    tbody.addEventListener('click', e=>{ if(e.target.tagName==='BUTTON'){ e.target.closest('tr').remove(); recalc(); }});
-    taxInput.addEventListener('input', recalc);
-
-    // Seed example rows
-    addRow('Aug 2025 – General', 'USD $', 1, 30);
-    addRow('Sep 2025 – Geospatial Analysis', 'USD $', 25, 30);
-    addRow('Sep 2025 – Meetings', 'USD $', 2, 30);
-    recalc();
-
-    // PDF generation following the 7-zone layout
-    document.getElementById('download-btn').addEventListener('click', ()=>{
-      const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
-      const page = { w: doc.internal.pageSize.getWidth(), h: doc.internal.pageSize.getHeight(), m: 40 };
-      let y = page.m;
-
-      const invoiceNumber = document.getElementById('invoice-number').value || '';
-      const billTo = document.getElementById('bill-to').value.trim();
-      const shipTo = document.getElementById('ship-to').value.trim();
-      const invDate = document.getElementById('invoice-date').value || '';
-      const dueDate = document.getElementById('due-date').value || '';
-      const total = document.getElementById('total').textContent;
-
-      // Fonts
-      doc.setFont('helvetica','');
-
-      // ZONE 1 – From
-      doc.setFontSize(10); doc.setTextColor(100);
-      doc.text('From', page.m, y);
-      doc.setTextColor(30); doc.setFontSize(12); doc.setFont(undefined,'bold');
-      doc.text('Adolfo Andrés Hincapié Garcia', page.m, y+16);
-      doc.setFont(undefined,''); doc.setFontSize(10); doc.setTextColor(60);
-      const fromLines = [
-        'Legal Address: CLL 34 #86A-41, Torre 7, 401. Medellín, Colombia',
-        'Postal Code: 050032',
-        'Phone: +57 3507439527',
-        'Email: bandreshin@gmail.com'];
-      fromLines.forEach((t,i)=>doc.text(t, page.m, y+34+i*14));
-
-      // ZONE 4 – Title & number
-      doc.setTextColor(20); doc.setFontSize(26); doc.setFont(undefined,'bold');
-      doc.text('INVOICE', page.w-page.m, y, { align:'right' });
-      doc.setFontSize(12); doc.setFont(undefined,'');
-      doc.text('#'+invoiceNumber, page.w-page.m, y+18, { align:'right' });
-
-      y += 80;
-
-      // ZONES 2 & 3 – Bill/Ship
-      doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Bill To', page.m, y);
-      doc.text('Ship To', page.w/2, y);
-      doc.setFont(undefined,''); doc.setFontSize(10);
-      const billLines = doc.splitTextToSize(billTo, page.w/2 - page.m - 10);
-      const shipLines = doc.splitTextToSize(shipTo, page.w/2 - page.m - 10);
-      const maxLines = Math.max(billLines.length, shipLines.length);
-      billLines.forEach((t,i)=> doc.text(t, page.m, y+16+i*14));
-      shipLines.forEach((t,i)=> doc.text(t, page.w/2, y+16+i*14));
-
-      // ZONE 5 – Dates & balance badge
-      const rightX = page.w - page.m;
-      const topY = y; // align with bill/ship block
-      doc.setFontSize(10); doc.text('Date:', rightX-160, topY);
-      doc.text(invDate, rightX, topY, {align:'right'});
-      doc.text('Due Date:', rightX-160, topY+14);
-      doc.text(dueDate, rightX, topY+14, {align:'right'});
-      // badge
-      doc.setDrawColor(230); doc.setFillColor(245); doc.roundedRect(rightX-180, topY+30, 180, 26, 4, 4, 'F');
-      doc.setFont(undefined,'bold'); doc.text('Balance Due', rightX-170, topY+47);
-      doc.text(total, rightX-10, topY+47, { align:'right' });
-
-      y = y + 16 + maxLines*14 + 30;
-
-      // divider
-      doc.setDrawColor(230); doc.line(page.m, y, rightX, y); y += 16;
-
-      // ZONE 6 – Items table via autoTable
-      const head = [['Item','Currency','Quantity','Rate','Amount']];
-      const body = [...tbody.querySelectorAll('tr')].map(tr=>{
-        const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
-        const amt = tr.querySelector('.amount').textContent;
-        return [desc.value, currEl.value, (parseFloat(qtyEl.value)||0).toString(), (parseFloat(rateEl.value)||0).toFixed(2), parseFloat(amt).toFixed(2)];
+      
+      addItemBtn.addEventListener('click', () => {
+        addRow('', 'USD $', 0, 0);
       });
-      doc.autoTable({
-        startY: y,
-        head: head,
-        body: body,
-        theme:'grid',
-        styles:{ font:'helvetica', fontSize:10, cellPadding:6, lineColor:[230,230,230], textColor:30 },
-        headStyles:{ fillColor:[248,250,252], textColor:60, lineColor:[230,230,230] },
-        columnStyles:{ 2:{ halign:'right' },3:{ halign:'right' },4:{ halign:'right' }},
-        margin:{ left: page.m, right: page.m }
+      tbody.addEventListener('input', e=>{ if(e.target.tagName==='INPUT') recalc(); });
+      tbody.addEventListener('click', e=>{ 
+        if(e.target.tagName==='BUTTON'){ 
+          if(tbody.childElementCount > 1) {
+            e.target.closest('tr').remove(); recalc(); 
+          } else {
+            toast('At least one item line is required.');
+          }
+        }
       });
-      y = doc.lastAutoTable.finalY + 18;
+      taxInput.addEventListener('input', recalc);
+      // Add event listener for the new payment details textarea to trigger save on input if desired,
+      // though typically saving is manual via button or autosave.
+      // paymentDetailsTextarea.addEventListener('input', saveLocal); 
+      
+      // Initial setup
+      loadLocalList();
+      // Seed example rows
+      addRow('Aug 2025 – General', 'USD $', 1, 30);
+      addRow('Sep 2025 – Geospatial Analysis', 'USD $', 25, 30);
+      addRow('Sep 2025 – Meetings', 'USD $', 2, 30);
+      recalc();
 
-      // Totals row
-      const totLabelX = rightX-160; doc.setFont(undefined,'bold'); doc.text('Total:', totLabelX, y);
-      doc.text(total, rightX, y, {align:'right'});
-      y += 24;
+      // PDF generation following the 7-zone layout
+      downloadBtn.addEventListener('click', ()=>{
+        const { jsPDF } = window.jspdf; const doc = new jsPDF({ unit:'pt', format:'a4' });
+        const page = { w: doc.internal.pageSize.getWidth(), h: doc.internal.pageSize.getHeight(), m: 40 };
+        let y = page.m;
 
-      // ZONE 7 – Notes + Payment details
-      doc.setFont(undefined,'bold'); doc.text('Notes', page.m, y);
-      doc.setFont(undefined,''); doc.setFontSize(10);
-      const notes = document.getElementById('notes').value;
-      const noteLines = doc.splitTextToSize(notes, 260);
-      doc.text(noteLines, page.m, y+16);
+        const invoiceNumber = document.getElementById('invoice-number').value || '';
+        const billTo = document.getElementById('bill-to').value.trim();
+        const shipTo = document.getElementById('ship-to').value.trim();
+        const invDate = document.getElementById('invoice-date').value || '';
+        const dueDate = document.getElementById('due-date').value || '';
+        const total = document.getElementById('total').textContent;
+        const notes = document.getElementById('notes').value;
+        const taxAmount = document.getElementById('tax-amount').textContent;
+        const subtotal = document.getElementById('subtotal').textContent;
+        // Get dynamic payment details
+        const paymentDetails = paymentDetailsTextarea.value;
 
-      // Payment details right side
-      doc.setFont(undefined,'bold'); doc.text('Payment details', page.w/2, y);
-      doc.setFont(undefined,'');
-      const pay = [
-        'Full name: ADOLFO ANDRÉS HINCAPIE GARCIA',
-        'Bank name: Bancolombia, Panama, S. A',
-        'Bank Address: CL 47 AQUILINO DE LA GUARDIA, PH PLAZA MARBELLA',
-        'Account number: 80100027312',
-        'SWIFT code: COLOPAPAXXX',
-        'Account type: Savings',
-        'ID number: 1044500384'];
-      pay.forEach((t,i)=> doc.text(t, page.w/2, y+16+i*14));
+        // Fonts
+        doc.setFont('helvetica','');
 
-      doc.save('invoice.pdf');
-    });
+        // ZONE 1 – From (Seller)
+        doc.setFontSize(10); doc.setTextColor(100);
+        doc.text('From', page.m, y);
+        doc.setTextColor(30); doc.setFontSize(12); doc.setFont(undefined,'bold');
+        doc.text('Adolfo Andrés Hincapié Garcia', page.m, y+16);
+        doc.setFont(undefined,''); doc.setFontSize(10); doc.setTextColor(60);
+        const fromLines = [
+          'Legal Address: CLL 34 #86A-41, Torre 7, 401. Medellín, Colombia',
+          'Postal Code: 050032',
+          'Phone: +57 3507439527',
+          'Email: bandreshin@gmail.com'];
+        fromLines.forEach((t,i)=>doc.text(t, page.m, y+34+i*14));
+
+        // ZONE 4 – Title & number
+        doc.setTextColor(20); doc.setFontSize(26); doc.setFont(undefined,'bold');
+        doc.text('INVOICE', page.w-page.m, y, { align:'right' });
+        doc.setFontSize(12); doc.setFont(undefined,'');
+        doc.text('#'+invoiceNumber, page.w-page.m, y+18, { align:'right' });
+        y += 80;
+
+        // ZONES 2 & 3 – Bill/Ship
+        doc.setFontSize(12); doc.setFont(undefined,'bold'); doc.text('Bill To', page.m, y);
+        doc.text('Ship To', page.w/2, y);
+        doc.setFont(undefined,''); doc.setFontSize(10);
+        const billLines = doc.splitTextToSize(billTo, page.w/2 - page.m - 10);
+        const shipLines = doc.splitTextToSize(shipTo, page.w/2 - page.m - 10);
+        const maxLines = Math.max(billLines.length, shipLines.length);
+        billLines.forEach((t,i)=> doc.text(t, page.m, y+16+i*14));
+        shipLines.forEach((t,i)=> doc.text(t, page.w/2, y+16+i*14));
+
+        // ZONE 5 – Dates & balance badge
+        const rightX = page.w - page.m;
+        const topY = y; // align with bill/ship block
+        doc.setFontSize(10); doc.text('Date:', rightX-160, topY);
+        doc.text(invDate, rightX, topY, {align:'right'});
+        doc.text('Due Date:', rightX-160, topY+14);
+        doc.text(dueDate, rightX, topY+14, {align:'right'});
+        // badge
+        doc.setDrawColor(230); doc.setFillColor(245); doc.roundedRect(rightX-180, topY+30, 180, 26, 4, 4, 'F');
+        doc.setFont(undefined,'bold'); doc.text('Balance Due', rightX-170, topY+47);
+        doc.text(total, rightX-10, topY+47, { align:'right' });
+
+        y = y + 16 + maxLines*14 + 30;
+        
+        // ZONE 6 – Items table via autoTable
+        const head = [['Item','Currency','Quantity','Rate','Amount']];
+        const body = [...tbody.querySelectorAll('tr')].map(tr=>{
+          const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
+          const amt = tr.querySelector('.amount').textContent;
+          return [desc.value, currEl.value, (parseFloat(qtyEl.value)||0).toString(), (parseFloat(rateEl.value)||0).toFixed(2), parseFloat(amt).toFixed(2)];
+        });
+        doc.autoTable({
+          startY: y,
+          head: head,
+          body: body,
+          theme:'grid',
+          styles:{ font:'helvetica', fontSize:10, cellPadding:6, lineColor:[230,230,230], textColor:30 },
+          headStyles:{ fillColor:[248,250,252], textColor:60, lineColor:[230,230,230] },
+          columnStyles:{ 2:{ halign:'right' },3:{ halign:'right' },4:{ halign:'right' }},
+          margin:{ left: page.m, right: page.m }
+        });
+        y = doc.lastAutoTable.finalY + 18;
+
+        // Totals rows
+        const totalsTableData = [['Subtotal', subtotal], ['Tax', taxAmount], ['Total', total]];
+        doc.autoTable({
+          startY: y,
+          body: totalsTableData,
+          theme: 'plain',
+          styles: { fontSize: 10, cellPadding: 2, textColor: 30 },
+          columnStyles: { 1: { halign: 'right' } },
+          bodyStyles: { fontStyle: 'bold' },
+          margin: { left: page.w - 180, right: page.m },
+          didDrawCell: (data) => {
+            if (data.row.index === 1) { // Apply line above "Total" or "Balance Due"
+              doc.setDrawColor(230);
+              doc.line(data.cell.x, data.cell.y, data.cell.x + data.cell.width, data.cell.y);
+            }
+          }
+        });
+        y = doc.lastAutoTable.finalY + 24;
+
+
+        // ZONE 7 – Notes + Payment details
+        doc.setFont(undefined,'bold'); doc.text('Notes', page.m, y);
+        doc.setFont(undefined,''); doc.setFontSize(10);
+        const noteLines = doc.splitTextToSize(notes, page.w/2 - page.m - 10);
+        doc.text(noteLines, page.m, y+16);
+        
+        doc.setFont(undefined,'bold'); doc.text('Payment details', page.w/2, y);
+        doc.setFont(undefined,'');
+        // MODIFIED: Use the content of the paymentDetailsTextarea for PDF
+        const paymentDetailsLines = doc.splitTextToSize(paymentDetails, page.w/2 - page.m - 10);
+        paymentDetailsLines.forEach((t,i)=> doc.text(t, page.w/2, y+16+i*14));
+
+        doc.save('invoice-client.pdf');
+      });
+    };
   </script>
 </body>
 </html>
