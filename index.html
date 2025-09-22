@@ -35,7 +35,7 @@
     <select id="load-invoices" class="flex-1 h-10 rounded-lg border border-slate-300 px-3 bg-white">
       <option value="">-- Select an Invoice --</option>
     </select>
-    <!-- New Currency Selector -->
+    <!-- NEW: Currency Selector -->
     <select id="currency-select" class="h-10 rounded-lg border border-slate-300 px-3 bg-white w-28">
       <option value="USD $">USD ($)</option>
       <option value="EUR €">EUR (€)</option>
@@ -176,7 +176,6 @@ ID number: 1044500384</textarea>
       el.textContent=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),2200);
     }
 
-    // All the logic and event listeners are placed inside window.onload to ensure the DOM is ready.
     window.onload = function() {
       // HTML element references
       const tbody = document.getElementById('items-table-body');
@@ -190,14 +189,15 @@ ID number: 1044500384</textarea>
       const addItemBtn = document.getElementById('add-item');
       const downloadBtn = document.getElementById('download-btn');
       const paymentDetailsTextarea = document.getElementById('payment-details');
-      const currencySelect = document.getElementById('currency-select'); // New currency selector reference
+      const currencySelect = document.getElementById('currency-select'); // NEW: Currency selector reference
 
 
       // Money formatter
       const money = (n, cur = 'USD $') => cur + (Number(n || 0)).toFixed(2);
 
       // Adds a new row to the table
-      function addRow(desc = '', cur = currencySelect.value, qty = 0, rate = 0) { // Default `cur` to selected currency
+      // UPDATED: Default `cur` now uses the value from the currency selector
+      function addRow(desc = '', cur = currencySelect.value, qty = 0, rate = 0) {
         const tr = document.createElement('tr');
         const amount = (qty * rate).toFixed(2);
         tr.className = 'hover:bg-slate-50';
@@ -213,9 +213,10 @@ ID number: 1044500384</textarea>
       }
 
       // Recalculates all totals
+      // UPDATED: `cur` now comes from the currency selector for display purposes
       function recalc() {
         let sub = 0;
-        const currentDisplayCurrency = currencySelect.value; // Use the selected currency for display
+        const currentDisplayCurrency = currencySelect.value; // Get currency from the selector for display
         
         [...tbody.querySelectorAll('tr')].forEach(tr => {
           const [desc, currEl, qtyEl, rateEl] = tr.querySelectorAll('input');
@@ -237,6 +238,7 @@ ID number: 1044500384</textarea>
       }
 
       // Get invoice data from the form fields
+      // UPDATED: Saves the selected currency
       function getInvoiceData(){
         const items = [...tbody.querySelectorAll('tr')].map(tr=>{
           const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
@@ -250,9 +252,9 @@ ID number: 1044500384</textarea>
           billTo: document.getElementById('bill-to')?.value,
           shipTo: document.getElementById('ship-to')?.value,
           notes: document.getElementById('notes')?.value,
-          tax: parseFloat(taxInput.value) || 0, 
+          tax: parseFloat(taxInput.value) || 0,
           paymentDetails: paymentDetailsTextarea?.value,
-          currency: currencySelect.value, // ADDED: Save the selected currency
+          currency: currencySelect.value, // NEW: Save the selected currency
           subtotal: subtotalEl?.textContent,
           total: totalEl?.textContent,
           items,
@@ -261,6 +263,7 @@ ID number: 1044500384</textarea>
       }
 
       // Populate the form with invoice data
+      // UPDATED: Loads the selected currency
       function populateInvoice(data){
         if(!data) return;
         document.getElementById('invoice-number').value = data.invoiceNumber||'';
@@ -269,9 +272,9 @@ ID number: 1044500384</textarea>
         document.getElementById('bill-to').value = data.billTo||'';
         document.getElementById('ship-to').value = data.shipTo||'';
         document.getElementById('notes').value = data.notes||'';
-        document.getElementById('tax').value = data.tax || 0; 
+        document.getElementById('tax').value = data.tax || 0;
         paymentDetailsTextarea.value = data.paymentDetails || '';
-        currencySelect.value = data.currency || 'USD $'; // ADDED: Load the selected currency
+        currencySelect.value = data.currency || 'USD $'; // NEW: Load the selected currency, default to USD if not found
         
         tbody.innerHTML='';
         (data.items||[]).forEach(it=> addRow(it.description,it.currency,it.quantity,it.rate));
@@ -310,7 +313,7 @@ ID number: 1044500384</textarea>
       });
       
       addItemBtn.addEventListener('click', () => {
-        addRow('', currencySelect.value, 0, 0); // Pass current selected currency to new row
+        addRow('', currencySelect.value, 0, 0); // NEW: Pass current selected currency to new row
       });
       tbody.addEventListener('input', e=>{ if(e.target.tagName==='INPUT') recalc(); });
       tbody.addEventListener('click', e=>{ 
@@ -323,11 +326,11 @@ ID number: 1044500384</textarea>
         }
       });
       taxInput.addEventListener('input', recalc);
-      currencySelect.addEventListener('change', recalc); // ADDED: Recalculate on currency change
+      currencySelect.addEventListener('change', recalc); // NEW: Recalculate on currency change
       
       // Initial setup
       loadLocalList();
-      // Seed example rows with explicit currencies
+      // Seed example rows (explicitly using USD, which is the default selector value)
       addRow('Aug 2025 – General', 'USD $', 1, 30);
       addRow('Sep 2025 – Geospatial Analysis', 'USD $', 25, 30);
       addRow('Sep 2025 – Meetings', 'USD $', 2, 30);
@@ -338,7 +341,7 @@ ID number: 1044500384</textarea>
         const { jsPDF } = window.jspdf; 
         const doc = new jsPDF({ unit:'pt', format:'a4' });
         const page = { w: doc.internal.pageSize.getWidth(), h: doc.internal.pageSize.getHeight(), m: 40 };
-        let currentY = page.m; // Use currentY for better readability in vertical positioning
+        let y = page.m; // Current vertical position, starting from top margin
 
         const invoiceNumber = document.getElementById('invoice-number').value || '';
         const billTo = document.getElementById('bill-to').value.trim();
@@ -347,164 +350,175 @@ ID number: 1044500384</textarea>
         const dueDate = document.getElementById('due-date').value || '';
         const notes = document.getElementById('notes').value;
         const paymentDetails = paymentDetailsTextarea.value;
-        const selectedCurrency = currencySelect.value; // Get the currently selected currency for PDF totals
+        const selectedCurrency = currencySelect.value; // NEW: Get the currently selected currency for PDF totals
         
-        // These values are text content, not raw numbers, so they already contain the currency symbol
-        // We will re-format them using the selectedCurrency to ensure consistency.
+        // NEW: Extract raw numeric values from HTML text content before re-formatting with selectedCurrency
         const rawSubtotal = parseFloat(subtotalEl.textContent.replace(/[^0-9.-]+/g, "")) || 0;
         const rawTaxAmount = parseFloat(document.getElementById('tax-amount').textContent.replace(/[^0-9.-]+/g, "")) || 0;
         const rawTotal = parseFloat(totalEl.textContent.replace(/[^0-9.-]+/g, "")) || 0;
 
 
-        // --- Global Font Settings (ensure Helvetica for all text) ---
-        doc.setFont('helvetica', ''); 
-        doc.setTextColor(30); // Default text color for most elements
+        // --- Font Setup (Ensuring Helvetica consistently) ---
+        doc.setFont('helvetica', 'normal'); // Set base font to Helvetica normal
+        const text_line_height = 14; // Standard line height for smaller text
 
-        // --- ZONE 1 & 4 (Top section, concurrent) ---
-        // These are positioned relative to the top margin and each other.
-        // We'll determine the max height used by these two zones to position the next block.
-
-        // ZONE 1: From (Seller) - Left side
+        // --- ZONE 1 – From (Seller) ---
+        let zone1_y_start = y;
         doc.setFontSize(10); doc.setTextColor(100);
-        doc.text('From', page.m, currentY);
-        doc.setTextColor(30); doc.setFontSize(12); doc.setFont(undefined, 'bold');
-        doc.text('Adolfo Andrés Hincapié Garcia', page.m, currentY + 16);
-        doc.setFont(undefined, ''); doc.setFontSize(10); doc.setTextColor(60); // Reset color for address lines
+        doc.text('From', page.m, y);
+        y += 16; // space for "From" label
+
+        doc.setTextColor(30); doc.setFontSize(12); doc.setFont('helvetica','bold');
+        doc.text('Adolfo Andrés Hincapié Garcia', page.m, y);
+        y += text_line_height; // space for name
+
+        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60);
         const fromLines = [
-            'Legal Address: CLL 34 #86A-41, Torre 7, 401. Medellín, Colombia',
-            'Postal Code: 050032',
-            'Phone: +57 3507439527',
-            'Email: bandreshin@gmail.com'
+          'Legal Address: CLL 34 #86A-41, Torre 7, 401. Medellín, Colombia',
+          'Postal Code: 050032',
+          'Phone: +57 3507439527',
+          'Email: bandreshin@gmail.com'
         ];
-        fromLines.forEach((t, i) => doc.text(t, page.m, currentY + 34 + i * 14));
-        const zone1Bottom = currentY + 34 + (fromLines.length * 14); // Estimated bottom of zone 1
+        fromLines.forEach(line => {
+            doc.text(line, page.m, y);
+            y += text_line_height;
+        });
+        let zone1_bottom_y = y; // Keep track of ZONE 1's bottom edge
 
-        // ZONE 4: Invoice Title & number - Right side
-        doc.setTextColor(20); doc.setFontSize(26); doc.setFont(undefined, 'bold');
-        doc.text('INVOICE', page.w - page.m, currentY, { align: 'right' });
-        doc.setFontSize(12); doc.setFont(undefined, ''); doc.setTextColor(30); // Reset color to default ink
-        doc.text('#' + invoiceNumber, page.w - page.m, currentY + 18, { align: 'right' });
-        const zone4Bottom = currentY + 18 + 14; // Estimated bottom of zone 4
+        // --- ZONE 4 – Title & number ---
+        let zone4_y_start = page.m; // Starts at the same Y as ZONE 1
+        doc.setTextColor(20); doc.setFontSize(26); doc.setFont('helvetica','bold');
+        doc.text('INVOICE', page.w-page.m, zone4_y_start, { align:'right' });
+        doc.setFontSize(12); doc.setFont('helvetica','normal');
+        doc.text('#'+invoiceNumber, page.w-page.m, zone4_y_start + 26 + 6, { align:'right' }); // 26 is rough height of 26pt text
+        let zone4_bottom_y = zone4_y_start + 26 + 6 + text_line_height; // rough estimate for its bottom
 
-        // Update currentY to be below both Zone 1 and Zone 4, plus some buffer
-        currentY = Math.max(zone1Bottom, zone4Bottom) + 30; // 30pt buffer after the tallest of the two
-        doc.setTextColor(30); // Ensure text color is reset for subsequent blocks
-        doc.setFont(undefined, ''); // Ensure font style is reset
+        // Update current Y to be below both ZONE 1 and ZONE 4, plus some padding
+        y = Math.max(zone1_bottom_y, zone4_bottom_y) + 30; 
 
-        // --- ZONES 2 & 3 (Bill/Ship, concurrent) & ZONE 5 (Dates + Balance) ---
-        // These three zones appear on the same conceptual 'row' in the initial layout
-        const block2_3_5_startY = currentY; // Store starting Y for this block
 
-        // ZONE 2: Bill To - Left side
-        doc.setFontSize(12); doc.setFont(undefined, 'bold'); doc.text('Bill To', page.m, currentY);
-        doc.setFont(undefined, ''); doc.setFontSize(10);
-        const billLines = doc.splitTextToSize(billTo, page.w / 2 - page.m - 10);
-        billLines.forEach((t, i) => doc.text(t, page.m, currentY + 16 + i * 14));
-        const zone2_height = 16 + billLines.length * 14;
+        // --- ZONES 2 & 3 – Bill/Ship ---
+        let zone2_3_y_start = y;
+        doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(30);
+        doc.text('Bill To', page.m, y);
+        doc.text('Ship To', page.w/2, y);
+        y += 16; // space for titles
 
-        // ZONE 3: Ship To - Middle column
-        doc.setFontSize(12); doc.setFont(undefined, 'bold'); doc.text('Ship To', page.w / 2, currentY);
-        doc.setFont(undefined, ''); doc.setFontSize(10);
-        const shipLines = doc.splitTextToSize(shipTo, page.w / 2 - page.m - 10);
-        shipLines.forEach((t, i) => doc.text(t, page.w / 2, currentY + 16 + i * 14));
-        const zone3_height = 16 + shipLines.length * 14;
+        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60);
+        const billToWidth = (page.w/2) - page.m - 10; // Width for text splitting
+        const shipToWidth = (page.w/2) - page.m - 10;
+        const billLines = doc.splitTextToSize(billTo, billToWidth);
+        const shipLines = doc.splitTextToSize(shipTo, shipToWidth);
+        const maxLines_2_3 = Math.max(billLines.length, shipLines.length);
 
-        // ZONE 5: Dates + Balance - Right column, aligning with Bill/Ship To top
-        const rightX = page.w - page.m;
-        doc.setFontSize(10); doc.setTextColor(100);
-        doc.text('Date:', rightX - 160, block2_3_5_startY);
-        doc.text(invDate, rightX, block2_3_5_startY, { align: 'right' });
-        doc.text('Due Date:', rightX - 160, block2_3_5_startY + 14);
-        doc.text(dueDate, rightX, block2_3_5_startY + 14, { align: 'right' });
+        billLines.forEach((t,i)=> doc.text(t, page.m, zone2_3_y_start + 16 + i * text_line_height));
+        shipLines.forEach((t,i)=> doc.text(t, page.w/2, zone2_3_y_start + 16 + i * text_line_height));
         
-        // Balance Due badge
-        const badgeStartY = block2_3_5_startY + 30; // Position below dates
-        doc.setDrawColor(230); doc.setFillColor(245); 
-        doc.roundedRect(rightX - 180, badgeStartY, 180, 26, 4, 4, 'F');
-        doc.setFont(undefined, 'bold'); doc.setTextColor(50); // Muted color for badge text
-        doc.text('Balance Due', rightX - 170, badgeStartY + 17); // 17pt offset for vertical centering in 26pt rect
-        doc.setTextColor(50); // Make sure color is also muted for amount
-        doc.text(money(rawTotal, selectedCurrency + ' '), rightX - 10, badgeStartY + 17, { align: 'right' }); // Use selectedCurrency for PDF Balance Due
-        
-        // Calculate the maximum height consumed by any of these three concurrent zones
-        const zone5_height = 30 + 26; // Y for badge start + badge height
-        currentY = block2_3_5_startY + Math.max(zone2_height, zone3_height, zone5_height) + 30; // 30pt buffer before table
-        doc.setTextColor(30); // Reset color to default ink
-        doc.setFont(undefined, ''); // Reset font style
+        y = zone2_3_y_start + 16 + maxLines_2_3 * text_line_height + 15; // Update y after ZONE 2/3, with padding
 
-        // --- ZONE 6 (Items table) ---
+
+        // --- ZONE 5 – Dates & balance badge ---
+        // This section is supposed to be below ZONE 2 & 3 in the grid
+        let zone5_y_start = y; 
+        const rightColX = page.w / 2; // Roughly where the right column starts in the grid
+
+        // Dates
+        doc.setFontSize(10); doc.setTextColor(100); doc.setFont('helvetica','normal');
+        doc.text('Date:', rightColX, y);
+        doc.text(invDate, page.w-page.m, y, {align:'right'});
+        y += text_line_height;
+
+        doc.text('Due Date:', rightColX, y);
+        doc.text(dueDate, page.w-page.m, y, {align:'right'});
+        y += 20; // Additional space before badge
+
+        // Balance badge
+        const badgeWidth = 180;
+        const badgeHeight = 26;
+        const badgeX = page.w - page.m - badgeWidth;
+        doc.setDrawColor(230); doc.setFillColor(245,245,245); // Lighter gray for fill
+        doc.roundedRect(badgeX, y, badgeWidth, badgeHeight, 4, 4, 'F');
+        doc.setTextColor(30); doc.setFont('helvetica','bold'); 
+        doc.text('Balance Due', badgeX + 10, y + (badgeHeight / 2) + 3); // Centered vertically
+        // UPDATED: Use selectedCurrency for PDF Balance Due
+        doc.text(money(rawTotal, selectedCurrency + ' '), page.w - page.m - 10, y + (badgeHeight / 2) + 3, { align:'right' });
+        
+        y += badgeHeight + 30; // Update y after badge, plus padding
+
+        // --- ZONE 6 – Items table via autoTable ---
         const head = [['Item','Currency','Quantity','Rate','Amount']];
         const body = [...tbody.querySelectorAll('tr')].map(tr=>{
           const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
           const amt = tr.querySelector('.amount').textContent;
-          return [desc.value, currEl.value, (parseFloat(qtyEl.value)||0).toString(), (parseFloat(rateEl.value)||0).toFixed(2), parseFloat(amt).toFixed(2)];
+          return [
+            desc.value, 
+            currEl.value, // This is the currency from the individual line item input
+            (parseFloat(qtyEl.value)||0).toString(), 
+            (parseFloat(rateEl.value)||0).toFixed(2), 
+            parseFloat(amt).toFixed(2)
+          ];
         });
         doc.autoTable({
-          startY: currentY,
+          startY: y,
           head: head,
           body: body,
           theme:'grid',
-          styles:{ font:'helvetica', fontSize:10, cellPadding:6, lineColor:[230,230,230], textColor:30 },
-          headStyles:{ fillColor:[248,250,252], textColor:60, lineColor:[230,230,230] },
+          styles:{ font:'helvetica', fontSize:10, cellPadding:6, lineColor:[230,230,230], textColor:30, fontStyle:'normal' },
+          headStyles:{ fillColor:[248,250,252], textColor:60, lineColor:[230,230,230], fontStyle:'bold' },
           columnStyles:{ 2:{ halign:'right' },3:{ halign:'right' },4:{ halign:'right' }},
           margin:{ left: page.m, right: page.m }
         });
-        currentY = doc.lastAutoTable.finalY + 18;
+        y = doc.lastAutoTable.finalY + 18; // Update y after the table
 
-        // Totals rows (part of Zone 6 in the layout)
+        // Totals rows
+        // UPDATED: Use selectedCurrency for PDF Totals
         const totalsTableData = [
           ['Subtotal', money(rawSubtotal, selectedCurrency + ' ')], 
           ['Tax', money(rawTaxAmount, selectedCurrency + ' ')], 
           ['Total', money(rawTotal, selectedCurrency + ' ')]
-        ]; // Use selectedCurrency for PDF Totals
+        ];
         doc.autoTable({
-          startY: currentY,
+          startY: y,
           body: totalsTableData,
           theme: 'plain',
-          styles: { fontSize: 10, cellPadding: 2, textColor: 30 },
+          styles: { font:'helvetica', fontSize: 10, cellPadding: 2, textColor: 30, fontStyle:'normal' },
           columnStyles: { 1: { halign: 'right' } },
           bodyStyles: { fontStyle: 'bold' },
-          margin: { left: page.w - 180, right: page.m },
+          margin: { left: page.w - 180, right: page.m }, // Align to right side
           didDrawCell: (data) => {
-            // Add a line above the Tax row
-            if (data.row.index === 1) { 
+            // Apply line above "Tax" row
+            if (data.row.index === 1 && data.column.index === 0) { 
               doc.setDrawColor(230);
-              doc.line(data.cell.x, data.cell.y, data.cell.x + data.cell.width, data.cell.y);
+              doc.line(data.cell.x, data.cell.y, data.cell.x + data.cell.width + 80, data.cell.y); // Extend line across both cells
             }
           }
         });
-        currentY = doc.lastAutoTable.finalY + 24;
+        y = doc.lastAutoTable.finalY + 24; // Update y after totals
 
+        // --- ZONE 7 – Notes + Payment details ---
+        const leftColWidth = (page.w/2) - page.m - 10;
+        const rightColX_zone7 = page.w / 2;
 
-        // --- ZONE 7: Terms + Payment details ---
-        const zone7_block_startY = currentY;
+        doc.setFont('helvetica','bold'); doc.setTextColor(30); doc.text('Notes', page.m, y);
+        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60);
+        const noteLines = doc.splitTextToSize(notes, leftColWidth);
+        doc.text(noteLines, page.m, y + text_line_height);
+        let notes_bottom_y = y + text_line_height + (noteLines.length > 0 ? (noteLines.length - 1) * text_line_height : 0);
 
-        // Signature section (left column)
-        doc.setFont(undefined, 'bold'); doc.setTextColor(30);
-        doc.text('Signature', page.m, zone7_block_startY);
-        doc.setDrawColor(200); // Lighter line color for signature
-        // The line starts after the "Signature" text and has a fixed length
-        const signatureLineY = zone7_block_startY + 40;
-        doc.line(page.m, signatureLineY, page.w / 2 - page.m - 20, signatureLineY);
+        doc.setFont('helvetica','bold'); doc.setTextColor(30); doc.text('Payment details', rightColX_zone7, y);
+        doc.setFont('helvetica','normal');
+        const paymentDetailsLines = doc.splitTextToSize(paymentDetails, leftColWidth); // Using same width as notes for balance
+        paymentDetailsLines.forEach((line,i)=> doc.text(line, rightColX_zone7, y + text_line_height + i * text_line_height));
+        let payment_details_bottom_y = y + text_line_height + (paymentDetailsLines.length > 0 ? (paymentDetailsLines.length - 1) * text_line_height : 0);
+        
+        y = Math.max(notes_bottom_y, payment_details_bottom_y) + 30; // Final Y update for next content if any
 
-        // Notes (left column, below signature)
-        doc.setFont(undefined, 'bold'); doc.setTextColor(30);
-        doc.text('Notes', page.m, signatureLineY + 20); // 20pt below signature line
-        doc.setFont(undefined, ''); doc.setFontSize(10); doc.setTextColor(60);
-        const noteLines = doc.splitTextToSize(notes, page.w / 2 - page.m - 10);
-        doc.text(noteLines, page.m, signatureLineY + 36);
-        const notesBottom = signatureLineY + 36 + (noteLines.length * 14);
+        // Optional: Signature line (can be static or dynamic)
+        doc.setFontSize(10); doc.setTextColor(60);
+        doc.text('Signature', page.m, y);
+        doc.setDrawColor(180); // Lighter line for signature
+        doc.line(page.m, y + 20, page.m + 200, y + 20); // Draw a line for signature
 
-        // Payment Details (right column, aligned with Signature/Notes)
-        doc.setFont(undefined, 'bold'); doc.setTextColor(30);
-        doc.text('Payment details', page.w / 2, zone7_block_startY);
-        doc.setFont(undefined, ''); doc.setFontSize(10); doc.setTextColor(60);
-        const paymentDetailsLines = doc.splitTextToSize(paymentDetails, page.w / 2 - page.m - 10);
-        paymentDetailsLines.forEach((t, i) => doc.text(t, page.w / 2, zone7_block_startY + 16 + i * 14));
-        const paymentDetailsBottom = zone7_block_startY + 16 + (paymentDetailsLines.length * 14);
-
-        // Final Y for the page, taking the lowest point of either side of Zone 7
-        currentY = Math.max(notesBottom, paymentDetailsBottom) + 20;
 
         doc.save('invoice-client.pdf');
       });
