@@ -157,14 +157,13 @@ https:</textarea>
       <!-- ZONE 7: Terms + Payment details -->
       <section class="zone-7 panel p-5">
         <p class="font-semibold text-slate-700 mb-2" data-i18n="termsPayment">Terms & Payment details</p>
-        <div class="grid md:grid-cols-3 gap-4">
+        <div class="grid md:grid-cols-2 gap-4">
           <div>
-            <p class="text-slate-600 text-sm mb-2" data-i18n="notes">Notes</p>
-            <textarea id="notes-zone7" rows="7" class="w-full bg-transparent resize-y text-slate-700 panel p-3" data-i18n-placeholder="notesPlaceholder" placeholder="Notes - any relevant information.">Additional terms and conditions.</textarea>
+            <p class="text-slate-600 text-sm" data-i18n="signature">Signature</p>
+            <div class="mt-2 h-16 border-b border-dashed border-slate-300"></div>
           </div>
           <div>
-            <p class="text-slate-600 text-sm mb-2" data-i18n="paymentDetails">Payment Details</p>
-            <textarea id="payment-details" rows="7" class="w-full bg-transparent resize-y text-slate-700 panel p-3" data-i18n-placeholder="paymentPlaceholder" placeholder="Enter payment instructions here...">Full name: ADOLFO ANDRÉS HINCAPIE GARCIA
+            <textarea id="payment-details" rows="7" class="mt-2 w-full bg-transparent resize-y text-slate-700 panel p-3" data-i18n-placeholder="paymentPlaceholder" placeholder="Enter payment instructions here...">Full name: ADOLFO ANDRÉS HINCAPIE GARCIA
 Bank name: Bancolombia, Panama, S. A
 Bank Address: CL 47 AQUILINO DE LA GUARDIA, PH PLAZA MARBELLA
 Account number: 80i000273i2
@@ -172,14 +171,6 @@ SWIFT code: COLPAPAPXXX
 Account type: Savings
 ID number: i044500384</textarea>
           </div>
-          <div>
-            <p class="text-slate-600 text-sm mb-2" data-i18n="paymentDetailsAdd">Additional Payment Info</p>
-            <textarea id="payment-details-add" rows="7" class="w-full bg-transparent resize-y text-slate-700 panel p-3" data-i18n-placeholder="paymentPlaceholder" placeholder="Enter additional payment info..."></textarea>
-          </div>
-        </div>
-        <div class="mt-4">
-          <p class="text-slate-600 text-sm" data-i18n="signature">Signature</p>
-          <div class="mt-2 h-16 border-b border-dashed border-slate-300 max-w-xs"></div>
         </div>
       </section>
     </div>
@@ -215,8 +206,6 @@ ID number: i044500384</textarea>
         total: 'Total',
         termsPayment: 'Terms & Payment details',
         signature: 'Signature',
-        paymentDetails: 'Payment Details',
-        paymentDetailsAdd: 'Additional Payment Info',
         paymentPlaceholder: 'Enter payment instructions here...',
         selectInvoice: '-- Select an Invoice --',
         invoiceSaved: 'Invoice saved locally',
@@ -250,8 +239,6 @@ ID number: i044500384</textarea>
         total: 'Total',
         termsPayment: 'Términos y Detalles de Pago',
         signature: 'Firma',
-        paymentDetails: 'Detalles de Pago',
-        paymentDetailsAdd: 'Información de Pago Adicional',
         paymentPlaceholder: 'Ingrese instrucciones de pago aquí...',
         selectInvoice: '-- Seleccionar una Factura --',
         invoiceSaved: 'Factura guardada localmente',
@@ -285,8 +272,6 @@ ID number: i044500384</textarea>
         total: 'Total',
         termsPayment: 'Termos e Detalhes de Pagamento',
         signature: 'Assinatura',
-        paymentDetails: 'Detalhes de Pagamento',
-        paymentDetailsAdd: 'Informações de Pagamento Adicionais',
         paymentPlaceholder: 'Digite as instruções de pagamento aqui...',
         selectInvoice: '-- Selecionar uma Fatura --',
         invoiceSaved: 'Fatura salva localmente',
@@ -343,8 +328,6 @@ ID number: i044500384</textarea>
       const addItemBtn = document.getElementById('add-item');
       const downloadBtn = document.getElementById('download-btn');
       const paymentDetailsTextarea = document.getElementById('payment-details');
-      const paymentDetailsAddTextarea = document.getElementById('payment-details-add'); // NEW: Additional payment details
-      const notesZone7Textarea = document.getElementById('notes-zone7'); // NEW: Zone 7 notes field
       const currencySelect = document.getElementById('currency-select'); // NEW: Currency selector reference
       const languageSelect = document.getElementById('language-select'); // NEW: Language selector reference
 
@@ -395,7 +378,7 @@ ID number: i044500384</textarea>
       }
 
       // Get invoice data from the form fields
-      // UPDATED: Saves the selected currency and new zone 7 fields
+      // UPDATED: Saves the selected currency
       function getInvoiceData(){
         const items = [...tbody.querySelectorAll('tr')].map(tr=>{
           const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
@@ -411,8 +394,6 @@ ID number: i044500384</textarea>
           notes: document.getElementById('notes')?.value,
           tax: parseFloat(taxInput.value) || 0,
           paymentDetails: paymentDetailsTextarea?.value,
-          paymentDetailsAdd: paymentDetailsAddTextarea?.value, // NEW: Additional payment details
-          notesZone7: notesZone7Textarea?.value, // NEW: Zone 7 notes
           currency: currencySelect.value, // NEW: Save the selected currency
           subtotal: subtotalEl?.textContent,
           total: totalEl?.textContent,
@@ -422,7 +403,7 @@ ID number: i044500384</textarea>
       }
 
       // Populate the form with invoice data
-      // UPDATED: Loads the selected currency and new zone 7 fields
+      // UPDATED: Loads the selected currency
       function populateInvoice(data){
         if(!data) return;
         document.getElementById('invoice-number').value = data.invoiceNumber||'';
@@ -433,10 +414,8 @@ ID number: i044500384</textarea>
         document.getElementById('notes').value = data.notes||'';
         document.getElementById('tax').value = data.tax || 0;
         paymentDetailsTextarea.value = data.paymentDetails || '';
-        paymentDetailsAddTextarea.value = data.paymentDetailsAdd || ''; // NEW: Load additional payment details
-        notesZone7Textarea.value = data.notesZone7 || ''; // NEW: Load zone 7 notes
         currencySelect.value = data.currency || 'USD $'; // NEW: Load the selected currency, default to USD if not found
-
+        
         tbody.innerHTML='';
         (data.items||[]).forEach(it=> addRow(it.description,it.currency,it.quantity,it.rate));
         if((data.items||[]).length===0) addRow('','USD $',0,0); // Ensure at least one row, defaulting to USD for new empty row
@@ -524,9 +503,7 @@ ID number: i044500384</textarea>
         const invDate = document.getElementById('invoice-date').value || '';
         const dueDate = document.getElementById('due-date').value || '';
         const notes = document.getElementById('notes').value;
-        const notesZone7 = notesZone7Textarea.value; // NEW: Zone 7 notes
         const paymentDetails = paymentDetailsTextarea.value;
-        const paymentDetailsAdd = paymentDetailsAddTextarea.value; // NEW: Additional payment details
         const selectedCurrency = currencySelect.value; // NEW: Get the currently selected currency for PDF totals
         
         // NEW: Extract raw numeric values from HTML text content before re-formatting with selectedCurrency
@@ -675,45 +652,26 @@ ID number: i044500384</textarea>
         });
         y = doc.lastAutoTable.finalY + 24; // Update y after totals
 
-        // --- ZONE 7 – Notes + Payment details (Three columns: 33% / 34% / 33%) ---
+        // --- ZONE 7 – Notes + Payment details ---
         // Check if we need a new page for the notes section
         checkPageBreak(100);
 
-        const contentWidth = page.w - (2 * page.m); // Total width minus margins
-        const col1Width = contentWidth * 0.33; // 33% for left column (Notes Zone 7)
-        const col2Width = contentWidth * 0.34; // 34% for middle column (Payment Details)
-        const col3Width = contentWidth * 0.33; // 33% for right column (Additional Payment)
-        const colGap = 10; // Gap between columns
+        const leftColWidth = (page.w/2) - page.m - 10;
+        const rightColX_zone7 = page.w / 2;
 
-        const col1X = page.m;
-        const col2X = col1X + col1Width + colGap;
-        const col3X = col2X + col2Width + colGap;
-
-        // Column 1: Notes (Zone 7)
-        doc.setFont('helvetica','bold'); doc.setTextColor(30);
-        doc.text('Notes', col1X, y);
+        doc.setFont('helvetica','bold'); doc.setTextColor(30); doc.text('Notes', page.m, y);
         doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60);
-        const notesZone7Lines = doc.splitTextToSize(notesZone7, col1Width - 5);
-        doc.text(notesZone7Lines, col1X, y + text_line_height);
-        let col1_bottom_y = y + text_line_height + (notesZone7Lines.length > 0 ? (notesZone7Lines.length - 1) * text_line_height : 0);
+        const noteLines = doc.splitTextToSize(notes, leftColWidth);
+        doc.text(noteLines, page.m, y + text_line_height);
+        let notes_bottom_y = y + text_line_height + (noteLines.length > 0 ? (noteLines.length - 1) * text_line_height : 0);
 
-        // Column 2: Payment Details
-        doc.setFont('helvetica','bold'); doc.setTextColor(30);
-        doc.text('Payment Details', col2X, y);
-        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60);
-        const paymentDetailsLines = doc.splitTextToSize(paymentDetails, col2Width - 5);
-        paymentDetailsLines.forEach((line,i)=> doc.text(line, col2X, y + text_line_height + i * text_line_height));
-        let col2_bottom_y = y + text_line_height + (paymentDetailsLines.length > 0 ? (paymentDetailsLines.length - 1) * text_line_height : 0);
-
-        // Column 3: Additional Payment Info
-        doc.setFont('helvetica','bold'); doc.setTextColor(30);
-        doc.text('Additional Info', col3X, y);
-        doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60);
-        const paymentDetailsAddLines = doc.splitTextToSize(paymentDetailsAdd, col3Width - 5);
-        paymentDetailsAddLines.forEach((line,i)=> doc.text(line, col3X, y + text_line_height + i * text_line_height));
-        let col3_bottom_y = y + text_line_height + (paymentDetailsAddLines.length > 0 ? (paymentDetailsAddLines.length - 1) * text_line_height : 0);
-
-        y = Math.max(col1_bottom_y, col2_bottom_y, col3_bottom_y) + 30; // Final Y update after all three columns
+        doc.setFont('helvetica','bold'); doc.setTextColor(30); doc.text('Payment details', rightColX_zone7, y);
+        doc.setFont('helvetica','normal');
+        const paymentDetailsLines = doc.splitTextToSize(paymentDetails, leftColWidth); // Using same width as notes for balance
+        paymentDetailsLines.forEach((line,i)=> doc.text(line, rightColX_zone7, y + text_line_height + i * text_line_height));
+        let payment_details_bottom_y = y + text_line_height + (paymentDetailsLines.length > 0 ? (paymentDetailsLines.length - 1) * text_line_height : 0);
+        
+        y = Math.max(notes_bottom_y, payment_details_bottom_y) + 30; // Final Y update for next content if any
 
         // Optional: Signature line (can be static or dynamic)
         doc.setFontSize(10); doc.setTextColor(60);
