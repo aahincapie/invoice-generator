@@ -32,6 +32,12 @@
 </head>
 <body class="p-6">
   <div class="max-w-[960px] mx-auto mb-4 flex gap-2">
+    <!-- NEW: Language Selector -->
+    <select id="language-select" class="h-10 rounded-lg border border-slate-300 px-3 bg-white w-32">
+      <option value="en">English</option>
+      <option value="es">Español</option>
+      <option value="pt">Português</option>
+    </select>
     <select id="load-invoices" class="flex-1 h-10 rounded-lg border border-slate-300 px-3 bg-white">
       <option value="">-- Select an Invoice --</option>
     </select>
@@ -43,11 +49,12 @@
       <option value="NZD $">NZD ($)</option>
       <option value="AUD $">AUD ($)</option>
       <option value="JPY ¥">JPY (¥)</option>
+      <option value="BRL R$">BRL (R$)</option>
     </select>
     <button id="save-btn" class="h-10 px-4 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700">
-      Save
+      <span data-i18n="save">Save</span>
     </button>
-    <button id="download-btn" class="h-10 px-4 rounded-lg bg-sky-600 text-white font-semibold hover:bg-sky-700">Download PDF</button>
+    <button id="download-btn" class="h-10 px-4 rounded-lg bg-sky-600 text-white font-semibold hover:bg-sky-700"><span data-i18n="download">Download PDF</span></button>
   </div>
 
   <div class="sheet" id="invoice">
@@ -57,19 +64,19 @@
         <div class="flex items-start gap-4">
           <div class="h-12 w-12 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold">AHI</div>
           <div>
-            <p class="text-sm text-slate-500">From</p>
+            <p class="text-sm text-slate-500" data-i18n="from">From</p>
             <p class="font-semibold text-slate-800">Adolfo Andrés Hincapié Garcia</p>
-            <p class="text-slate-600 text-sm">Legal Address: Cll 34 #86A-41, T7, 401. Medellín, Colombia</p>
-            <p class="text-slate-600 text-sm">Postal Code: 050032</p>
-            <p class="text-slate-600 text-sm">Phone: +57 3507439527</p>
-            <p class="text-slate-600 text-sm">Email: bandreshin@gmail.com Website: https://aahincapie.github.io/about/ </p>
+            <p class="text-slate-600 text-sm"><span data-i18n="legalAddress">Legal Address</span>: Cll 34 #86A-41, T7, 401. Medellín, Colombia</p>
+            <p class="text-slate-600 text-sm"><span data-i18n="postalCode">Postal Code</span>: 050032</p>
+            <p class="text-slate-600 text-sm"><span data-i18n="phone">Phone</span>: +57 3507439527</p>
+            <p class="text-slate-600 text-sm"><span data-i18n="email">Email</span>: bandreshin@gmail.com <span data-i18n="website">Website</span>: https://aahincapie.github.io/about/ </p>
           </div>
         </div>
       </section>
 
       <!-- ZONE 4: Invoice Title & number -->
       <section class="zone-4">
-        <p class="text-4xl font-bold tracking-wide text-slate-800">INVOICE</p>
+        <p class="text-4xl font-bold tracking-wide text-slate-800" data-i18n="invoice">INVOICE</p>
         <div class="mt-2 flex items-baseline gap-2 justify-end">
           <span class="text-slate-500 font-semibold">#</span>
           <input id="invoice-number" class="w-20 field focus:outline-none text-right text-slate-800 font-semibold bg-transparent" value="3"/>
@@ -78,14 +85,14 @@
 
       <!-- ZONE 2: Bill To -->
       <section class="zone-2 panel p-4">
-        <p class="font-semibold text-slate-700 mb-2">Bill To</p>
+        <p class="font-semibold text-slate-700 mb-2" data-i18n="billTo">Bill To</p>
         <textarea id="bill-to" class="w-full bg-transparent resize-y min-h-[112px] text-slate-700" rows="5">Environmental
 Accounting Services Ltd (NZBN 942903i56473i)</textarea>
       </section>
 
       <!-- ZONE 3: Ship To / Contact -->
       <section class="zone-3 panel p-4">
-        <p class="font-semibold text-slate-700 mb-2">Ship To</p>
+        <p class="font-semibold text-slate-700 mb-2" data-i18n="shipTo">Ship To</p>
         <textarea id="ship-to" class="w-full bg-transparent resize-y min-h-[112px] text-slate-700" rows="5">50 Charles Crt, Lake Hawea, 9382, New Zealand
 Email: carly.green@enviroaccounts.com</textarea>
       </section>
@@ -93,15 +100,15 @@ Email: carly.green@enviroaccounts.com</textarea>
       <!-- ZONE 5: Dates + Balance -->
       <section class="zone-5 panel p-4">
         <div class="grid grid-cols-2 gap-4">
-          <label class="text-sm text-slate-500">Date
+          <label class="text-sm text-slate-500"><span data-i18n="date">Date</span>
             <input id="invoice-date" type="date" class="block w-full mt-1 field bg-white px-2 py-1 rounded"/>
           </label>
-          <label class="text-sm text-slate-500">Due Date
+          <label class="text-sm text-slate-500"><span data-i18n="dueDate">Due Date</span>
             <input id="due-date" type="date" class="block w-full mt-1 field bg-white px-2 py-1 rounded"/>
           </label>
         </div>
         <div class="mt-4 flex items-center justify-between bg-slate-50 border border-slate-200 rounded px-3 py-2">
-          <span class="text-sm text-slate-500">Balance Due</span>
+          <span class="text-sm text-slate-500" data-i18n="balanceDue">Balance Due</span>
           <span id="balance-due" class="text-2xl font-bold text-sky-700">USD $0.00</span>
         </div>
       </section>
@@ -112,11 +119,11 @@ Email: carly.green@enviroaccounts.com</textarea>
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-slate-700">
               <tr>
-                <th class="text-left p-3">Item</th>
-                <th class="text-center p-3">Currency</th>
-                <th class="text-right p-3">Quantity</th>
-                <th class="text-right p-3">Rate</th>
-                <th class="text-right p-3">Amount</th>
+                <th class="text-left p-3" data-i18n="item">Item</th>
+                <th class="text-center p-3" data-i18n="currency">Currency</th>
+                <th class="text-right p-3" data-i18n="quantity">Quantity</th>
+                <th class="text-right p-3" data-i18n="rate">Rate</th>
+                <th class="text-right p-3" data-i18n="amount">Amount</th>
                 <th class="w-10"></th>
               </tr>
             </thead>
@@ -124,24 +131,24 @@ Email: carly.green@enviroaccounts.com</textarea>
             </tbody>
           </table>
         </div>
-        <button id="add-item" class="mt-3 w-full h-10 border border-dashed border-slate-300 rounded-lg text-sky-600 font-medium hover:bg-slate-50">+ Line Item</button>
+        <button id="add-item" class="mt-3 w-full h-10 border border-dashed border-slate-300 rounded-lg text-sky-600 font-medium hover:bg-slate-50"><span data-i18n="addLineItem">+ Line Item</span></button>
 
         <div class="mt-6 flex flex-col md:flex-row md:items-start gap-6">
           <div class="flex-1">
-            <p class="font-medium text-slate-700">Notes</p>
-            <textarea id="notes" rows="5" class="mt-2 w-full panel p-3 bg-transparent resize-y" placeholder="Notes - any relevant information.">Detailed information available on Track Time Report Excel and Available on:
+            <p class="font-medium text-slate-700" data-i18n="notes">Notes</p>
+            <textarea id="notes" rows="5" class="mt-2 w-full panel p-3 bg-transparent resize-y" data-i18n-placeholder="notesPlaceholder" placeholder="Notes - any relevant information.">Detailed information available on Track Time Report Excel and Available on:
 https:</textarea>
           </div>
           <div class="w-full md:w-80 ml-auto">
             <div class="panel p-4 space-y-2">
-              <div class="flex justify-between"><span class="text-slate-600">Subtotal</span><span id="subtotal" class="font-semibold text-slate-800">$0.00</span></div>
+              <div class="flex justify-between"><span class="text-slate-600" data-i18n="subtotal">Subtotal</span><span id="subtotal" class="font-semibold text-slate-800">$0.00</span></div>
               <div class="flex items-center justify-between">
-                <label class="text-slate-600 flex items-center gap-2">Tax (%) <input id="tax" type="number" value="0" class="number-input w-20 text-right panel px-2 py-1"/></label>
+                <label class="text-slate-600 flex items-center gap-2"><span data-i18n="tax">Tax</span> (%) <input id="tax" type="number" value="0" class="number-input w-20 text-right panel px-2 py-1"/></label>
                 <span id="tax-amount" class="font-semibold text-slate-800">$0.00</span>
               </div>
               <div class="h-rule"></div>
-              <div class="flex justify-between text-lg"><span class="font-medium">Total</span><span id="total" class="font-bold">$0.00</span></div>
-              <div class="flex justify-between text-lg"><span class="font-medium">Balance Due</span><span id="balance-due-summary" class="font-bold">$0.00</span></div>
+              <div class="flex justify-between text-lg"><span class="font-medium" data-i18n="total">Total</span><span id="total" class="font-bold">$0.00</span></div>
+              <div class="flex justify-between text-lg"><span class="font-medium" data-i18n="balanceDue">Balance Due</span><span id="balance-due-summary" class="font-bold">$0.00</span></div>
             </div>
           </div>
         </div>
@@ -149,14 +156,14 @@ https:</textarea>
 
       <!-- ZONE 7: Terms + Payment details -->
       <section class="zone-7 panel p-5">
-        <p class="font-semibold text-slate-700 mb-2">Terms & Payment details</p>
+        <p class="font-semibold text-slate-700 mb-2" data-i18n="termsPayment">Terms & Payment details</p>
         <div class="grid md:grid-cols-2 gap-4">
           <div>
-            <p class="text-slate-600 text-sm">Signature</p>
+            <p class="text-slate-600 text-sm" data-i18n="signature">Signature</p>
             <div class="mt-2 h-16 border-b border-dashed border-slate-300"></div>
           </div>
           <div>
-            <textarea id="payment-details" rows="7" class="mt-2 w-full bg-transparent resize-y text-slate-700 panel p-3" placeholder="Enter payment instructions here...">Full name: ADOLFO ANDRÉS HINCAPIE GARCIA
+            <textarea id="payment-details" rows="7" class="mt-2 w-full bg-transparent resize-y text-slate-700 panel p-3" data-i18n-placeholder="paymentPlaceholder" placeholder="Enter payment instructions here...">Full name: ADOLFO ANDRÉS HINCAPIE GARCIA
 Bank name: Bancolombia, Panama, S. A
 Bank Address: CL 47 AQUILINO DE LA GUARDIA, PH PLAZA MARBELLA
 Account number: 80i000273i2
@@ -169,6 +176,138 @@ ID number: i044500384</textarea>
     </div>
   </div>
   <script>
+    // Translation system
+    const translations = {
+      en: {
+        save: 'Save',
+        download: 'Download PDF',
+        from: 'From',
+        legalAddress: 'Legal Address',
+        postalCode: 'Postal Code',
+        phone: 'Phone',
+        email: 'Email',
+        website: 'Website',
+        invoice: 'INVOICE',
+        billTo: 'Bill To',
+        shipTo: 'Ship To',
+        date: 'Date',
+        dueDate: 'Due Date',
+        balanceDue: 'Balance Due',
+        item: 'Item',
+        currency: 'Currency',
+        quantity: 'Quantity',
+        rate: 'Rate',
+        amount: 'Amount',
+        addLineItem: '+ Line Item',
+        notes: 'Notes',
+        notesPlaceholder: 'Notes - any relevant information.',
+        subtotal: 'Subtotal',
+        tax: 'Tax',
+        total: 'Total',
+        termsPayment: 'Terms & Payment details',
+        signature: 'Signature',
+        paymentPlaceholder: 'Enter payment instructions here...',
+        selectInvoice: '-- Select an Invoice --',
+        invoiceSaved: 'Invoice saved locally',
+        atLeastOneItem: 'At least one item line is required.'
+      },
+      es: {
+        save: 'Guardar',
+        download: 'Descargar PDF',
+        from: 'De',
+        legalAddress: 'Dirección Legal',
+        postalCode: 'Código Postal',
+        phone: 'Teléfono',
+        email: 'Correo',
+        website: 'Sitio Web',
+        invoice: 'FACTURA',
+        billTo: 'Facturar a',
+        shipTo: 'Enviar a',
+        date: 'Fecha',
+        dueDate: 'Fecha de Vencimiento',
+        balanceDue: 'Saldo Adeudado',
+        item: 'Artículo',
+        currency: 'Moneda',
+        quantity: 'Cantidad',
+        rate: 'Tarifa',
+        amount: 'Monto',
+        addLineItem: '+ Agregar Línea',
+        notes: 'Notas',
+        notesPlaceholder: 'Notas - cualquier información relevante.',
+        subtotal: 'Subtotal',
+        tax: 'Impuesto',
+        total: 'Total',
+        termsPayment: 'Términos y Detalles de Pago',
+        signature: 'Firma',
+        paymentPlaceholder: 'Ingrese instrucciones de pago aquí...',
+        selectInvoice: '-- Seleccionar una Factura --',
+        invoiceSaved: 'Factura guardada localmente',
+        atLeastOneItem: 'Se requiere al menos una línea de artículo.'
+      },
+      pt: {
+        save: 'Salvar',
+        download: 'Baixar PDF',
+        from: 'De',
+        legalAddress: 'Endereço Legal',
+        postalCode: 'Código Postal',
+        phone: 'Telefone',
+        email: 'E-mail',
+        website: 'Site',
+        invoice: 'FATURA',
+        billTo: 'Faturar para',
+        shipTo: 'Enviar para',
+        date: 'Data',
+        dueDate: 'Data de Vencimento',
+        balanceDue: 'Saldo Devido',
+        item: 'Item',
+        currency: 'Moeda',
+        quantity: 'Quantidade',
+        rate: 'Taxa',
+        amount: 'Valor',
+        addLineItem: '+ Adicionar Linha',
+        notes: 'Notas',
+        notesPlaceholder: 'Notas - qualquer informação relevante.',
+        subtotal: 'Subtotal',
+        tax: 'Imposto',
+        total: 'Total',
+        termsPayment: 'Termos e Detalhes de Pagamento',
+        signature: 'Assinatura',
+        paymentPlaceholder: 'Digite as instruções de pagamento aqui...',
+        selectInvoice: '-- Selecionar uma Fatura --',
+        invoiceSaved: 'Fatura salva localmente',
+        atLeastOneItem: 'É necessário pelo menos um item.'
+      }
+    };
+
+    let currentLang = 'en';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      const trans = translations[lang];
+
+      // Update all elements with data-i18n attribute
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (trans[key]) {
+          el.textContent = trans[key];
+        }
+      });
+
+      // Update placeholders
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (trans[key]) {
+          el.placeholder = trans[key];
+        }
+      });
+
+      // Update load invoice select first option
+      const loadSelect = document.getElementById('load-invoices');
+      if (loadSelect && loadSelect.options[0]) {
+        loadSelect.options[0].text = trans.selectInvoice;
+      }
+    }
+
     // Helper function for a quick pop-up message
     function toast(msg){
       const el=document.createElement('div');
@@ -190,6 +329,7 @@ ID number: i044500384</textarea>
       const downloadBtn = document.getElementById('download-btn');
       const paymentDetailsTextarea = document.getElementById('payment-details');
       const currencySelect = document.getElementById('currency-select'); // NEW: Currency selector reference
+      const languageSelect = document.getElementById('language-select'); // NEW: Language selector reference
 
 
       // Money formatter
@@ -289,7 +429,7 @@ ID number: i044500384</textarea>
         list.push(entry);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
         loadLocalList();
-        toast('Invoice saved locally');
+        toast(translations[currentLang].invoiceSaved);
       }
 
       function loadLocalList(){
@@ -316,19 +456,23 @@ ID number: i044500384</textarea>
         addRow('', currencySelect.value, 0, 0); // NEW: Pass current selected currency to new row
       });
       tbody.addEventListener('input', e=>{ if(e.target.tagName==='INPUT') recalc(); });
-      tbody.addEventListener('click', e=>{ 
-        if(e.target.tagName==='BUTTON'){ 
+      tbody.addEventListener('click', e=>{
+        if(e.target.tagName==='BUTTON'){
           if(tbody.childElementCount > 1) {
-            e.target.closest('tr').remove(); recalc(); 
+            e.target.closest('tr').remove(); recalc();
           } else {
-            toast('At least one item line is required.');
+            toast(translations[currentLang].atLeastOneItem);
           }
         }
       });
       taxInput.addEventListener('input', recalc);
       currencySelect.addEventListener('change', recalc); // NEW: Recalculate on currency change
-      
+      languageSelect.addEventListener('change', (e) => {
+        setLanguage(e.target.value);
+      });
+
       // Initial setup
+      setLanguage('en'); // Set default language
       loadLocalList();
       // Seed example rows (explicitly using USD, which is the default selector value)
       addRow('Aug 2025 – General', 'USD $', 1, 30);
@@ -338,10 +482,20 @@ ID number: i044500384</textarea>
 
       // PDF generation following the 7-zone layout
       downloadBtn.addEventListener('click', ()=>{
-        const { jsPDF } = window.jspdf; 
+        const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ unit:'pt', format:'a4' });
         const page = { w: doc.internal.pageSize.getWidth(), h: doc.internal.pageSize.getHeight(), m: 40 };
         let y = page.m; // Current vertical position, starting from top margin
+
+        // Helper function to check if we need a new page
+        const checkPageBreak = (requiredSpace) => {
+          if (y + requiredSpace > page.h - page.m) {
+            doc.addPage();
+            y = page.m;
+            return true;
+          }
+          return false;
+        };
 
         const invoiceNumber = document.getElementById('invoice-number').value || '';
         const billTo = document.getElementById('bill-to').value.trim();
@@ -377,7 +531,8 @@ ID number: i044500384</textarea>
           'Legal Address: CLL 34 #86A-41, Torre 7, 401. Medellín, Colombia',
           'Postal Code: 050032',
           'Phone: +57 3507439527',
-          'Email: bandreshin@gmail.com'
+          'Email: bandreshin@gmail.com',
+          'Website: https://aahincapie.github.io/about/'
         ];
         fromLines.forEach(line => {
             doc.text(line, page.m, y);
@@ -466,7 +621,9 @@ ID number: i044500384</textarea>
           styles:{ font:'helvetica', fontSize:10, cellPadding:6, lineColor:[230,230,230], textColor:30, fontStyle:'normal' },
           headStyles:{ fillColor:[248,250,252], textColor:60, lineColor:[230,230,230], fontStyle:'bold' },
           columnStyles:{ 2:{ halign:'right' },3:{ halign:'right' },4:{ halign:'right' }},
-          margin:{ left: page.m, right: page.m }
+          margin:{ left: page.m, right: page.m },
+          showHead: 'everyPage',
+          rowPageBreak: 'auto'
         });
         y = doc.lastAutoTable.finalY + 18; // Update y after the table
 
@@ -496,6 +653,9 @@ ID number: i044500384</textarea>
         y = doc.lastAutoTable.finalY + 24; // Update y after totals
 
         // --- ZONE 7 – Notes + Payment details ---
+        // Check if we need a new page for the notes section
+        checkPageBreak(100);
+
         const leftColWidth = (page.w/2) - page.m - 10;
         const rightColX_zone7 = page.w / 2;
 
@@ -520,7 +680,9 @@ ID number: i044500384</textarea>
         doc.line(page.m, y + 20, page.m + 200, y + 20); // Draw a line for signature
 
 
-        doc.save('invoice-client.pdf');
+        // Save with invoice number in filename
+        const filename = `invoice-client${invoiceNumber ? '-' + invoiceNumber : ''}.pdf`;
+        doc.save(filename);
       });
     };
   </script>
