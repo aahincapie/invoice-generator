@@ -451,12 +451,12 @@ ID number: i044500384</textarea>
     let currentLang = 'en';
 
     // Supabase Configuration from config.js
-    let supabase = null;
+    let supabaseClient = null;
     let currentUser = null;
 
     // Initialize Supabase
     if (typeof SUPABASE_CONFIG !== 'undefined' && SUPABASE_CONFIG.publishableKey) {
-      supabase = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.publishableKey);
+      supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.publishableKey);
     }
 
     // Image storage for logo and signature
@@ -465,7 +465,7 @@ ID number: i044500384</textarea>
 
     // Authentication Functions
     async function checkAuth() {
-      if (!supabase) {
+      if (!supabaseClient) {
         // No Supabase configured, show app directly
         document.getElementById('auth-section').classList.add('hidden');
         document.getElementById('app-section').classList.remove('hidden');
@@ -473,7 +473,7 @@ ID number: i044500384</textarea>
         return;
       }
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabaseClient.auth.getSession();
 
       if (session) {
         currentUser = session.user;
@@ -510,7 +510,7 @@ ID number: i044500384</textarea>
         return;
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
         email,
         password
       });
@@ -532,7 +532,7 @@ ID number: i044500384</textarea>
         return;
       }
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabaseClient.auth.signUp({
         email,
         password
       });
@@ -545,8 +545,8 @@ ID number: i044500384</textarea>
     }
 
     async function handleLogout() {
-      if (supabase) {
-        await supabase.auth.signOut();
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
         currentUser = null;
         showAuth();
       }
@@ -825,9 +825,9 @@ ID number: i044500384</textarea>
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 
         // Save to Supabase if configured and user is authenticated
-        if (supabase && currentUser) {
+        if (supabaseClient && currentUser) {
           try {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
               .from('invoices')
               .insert([{
                 user_id: currentUser.id,
@@ -1139,9 +1139,9 @@ ID number: i044500384</textarea>
         }
 
         // Update status to 'ready_to_send' when downloading PDF
-        if (supabase && currentUser) {
+        if (supabaseClient && currentUser) {
           const invoiceNum = document.getElementById('invoice-number').value;
-          supabase
+          supabaseClient
             .from('invoices')
             .update({ status: 'ready_to_send' })
             .eq('invoice_number', invoiceNum)
@@ -1162,9 +1162,9 @@ ID number: i044500384</textarea>
         const localInvoices = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
 
         // Try to load from Supabase if authenticated
-        if (supabase && currentUser) {
+        if (supabaseClient && currentUser) {
           try {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
               .from('invoices')
               .select('*')
               .eq('user_id', currentUser.id)
@@ -1268,9 +1268,9 @@ ID number: i044500384</textarea>
 
       async function updateInvoiceStatus(id, invoiceNumber, newStatus) {
         // Update in Supabase if available and authenticated
-        if (supabase && currentUser) {
+        if (supabaseClient && currentUser) {
           try {
-            const { error } = await supabase
+            const { error } = await supabaseClient
               .from('invoices')
               .update({ status: newStatus })
               .eq('id', id)
