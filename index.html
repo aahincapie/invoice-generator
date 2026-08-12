@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{--ink:#0f172a;--muted:#64748b;--line:#e5e7eb;--panel:#f8fafc}
     html,body{font-family:'Inter',system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f3f4f6}
@@ -31,7 +32,7 @@
   </style>
 </head>
 <body class="p-6">
-  <div class="max-w-[960px] mx-auto mb-4 flex gap-2">
+  <div class="max-w-[960px] mx-auto mb-4 flex gap-2 flex-wrap">
     <!-- NEW: Language Selector -->
     <select id="language-select" class="h-10 rounded-lg border border-slate-300 px-3 bg-white w-32">
       <option value="en">English</option>
@@ -55,6 +56,35 @@
       <span data-i18n="save">Save</span>
     </button>
     <button id="download-btn" class="h-10 px-4 rounded-lg bg-sky-600 text-white font-semibold hover:bg-sky-700"><span data-i18n="download">Download PDF</span></button>
+    <a href="dashboard.html" class="h-10 px-4 rounded-lg bg-purple-600 text-white font-semibold hover:bg-purple-700 flex items-center">
+      <span data-i18n="dashboard">Dashboard</span>
+    </a>
+  </div>
+
+  <!-- Image Upload Section -->
+  <div class="max-w-[960px] mx-auto mb-4 p-4 bg-white rounded-lg shadow-sm border border-slate-200">
+    <div class="grid md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">
+          <span data-i18n="companyLogo">Company Logo</span>
+        </label>
+        <input type="file" id="logo-upload" accept="image/png,image/jpeg,image/jpg" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"/>
+        <div id="logo-preview" class="mt-2 hidden">
+          <img id="logo-img" src="" alt="Logo" class="h-16 border border-slate-200 rounded"/>
+          <button id="remove-logo" class="text-xs text-red-600 hover:underline mt-1">Remove</button>
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-slate-700 mb-2">
+          <span data-i18n="signature">Signature</span>
+        </label>
+        <input type="file" id="signature-upload" accept="image/png,image/jpeg,image/jpg" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"/>
+        <div id="signature-preview" class="mt-2 hidden">
+          <img id="signature-img" src="" alt="Signature" class="h-16 border border-slate-200 rounded"/>
+          <button id="remove-signature" class="text-xs text-red-600 hover:underline mt-1">Remove</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="sheet" id="invoice">
@@ -62,7 +92,10 @@
       <!-- ZONE 1: From (Seller) -->
       <section class="zone-1">
         <div class="flex items-start gap-4">
-          <div class="h-12 w-12 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold">AHI</div>
+          <div id="logo-container" class="h-12 w-12 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold">
+            <span id="logo-initials">AHI</span>
+            <img id="display-logo" src="" alt="Logo" class="hidden h-12 w-12 object-contain rounded-lg"/>
+          </div>
           <div>
             <p class="text-sm text-slate-500" data-i18n="from">From</p>
             <p class="font-semibold text-slate-800">Adolfo Andrés Hincapié Garcia</p>
@@ -160,7 +193,9 @@ https:</textarea>
         <div class="grid md:grid-cols-2 gap-4">
           <div>
             <p class="text-slate-600 text-sm" data-i18n="signature">Signature</p>
-            <div class="mt-2 h-16 border-b border-dashed border-slate-300"></div>
+            <div class="mt-2 h-24 border-b border-dashed border-slate-300 flex items-end">
+              <img id="display-signature" src="" alt="Signature" class="hidden max-h-20 object-contain"/>
+            </div>
           </div>
           <div>
             <textarea id="payment-details" rows="7" class="mt-2 w-full bg-transparent resize-y text-slate-700 panel p-3" data-i18n-placeholder="paymentPlaceholder" placeholder="Enter payment instructions here...">Full name: ADOLFO ANDRÉS HINCAPIE GARCIA
@@ -209,7 +244,13 @@ ID number: i044500384</textarea>
         paymentPlaceholder: 'Enter payment instructions here...',
         selectInvoice: '-- Select an Invoice --',
         invoiceSaved: 'Invoice saved locally',
-        atLeastOneItem: 'At least one item line is required.'
+        atLeastOneItem: 'At least one item line is required.',
+        companyLogo: 'Company Logo',
+        dashboard: 'Dashboard',
+        invoiceStatus: 'Status',
+        draft: 'Draft',
+        sent: 'Sent',
+        paid: 'Paid'
       },
       es: {
         save: 'Guardar',
@@ -242,7 +283,13 @@ ID number: i044500384</textarea>
         paymentPlaceholder: 'Ingrese instrucciones de pago aquí...',
         selectInvoice: '-- Seleccionar una Factura --',
         invoiceSaved: 'Factura guardada localmente',
-        atLeastOneItem: 'Se requiere al menos una línea de artículo.'
+        atLeastOneItem: 'Se requiere al menos una línea de artículo.',
+        companyLogo: 'Logo de la Empresa',
+        dashboard: 'Panel',
+        invoiceStatus: 'Estado',
+        draft: 'Borrador',
+        sent: 'Enviada',
+        paid: 'Pagada'
       },
       pt: {
         save: 'Salvar',
@@ -275,11 +322,31 @@ ID number: i044500384</textarea>
         paymentPlaceholder: 'Digite as instruções de pagamento aqui...',
         selectInvoice: '-- Selecionar uma Fatura --',
         invoiceSaved: 'Fatura salva localmente',
-        atLeastOneItem: 'É necessário pelo menos um item.'
+        atLeastOneItem: 'É necessário pelo menos um item.',
+        companyLogo: 'Logo da Empresa',
+        dashboard: 'Painel',
+        invoiceStatus: 'Status',
+        draft: 'Rascunho',
+        sent: 'Enviada',
+        paid: 'Paga'
       }
     };
 
     let currentLang = 'en';
+
+    // Supabase Configuration
+    const SUPABASE_URL = 'https://fwpadfroagpzkmcxzppq.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE'; // Replace with actual key
+    let supabase = null;
+
+    // Initialize Supabase if credentials are provided
+    if (SUPABASE_ANON_KEY !== 'YOUR_ANON_KEY_HERE') {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+
+    // Image storage for logo and signature
+    let logoBase64 = localStorage.getItem('invoice-logo') || '';
+    let signatureBase64 = localStorage.getItem('invoice-signature') || '';
 
     function setLanguage(lang) {
       currentLang = lang;
@@ -331,6 +398,89 @@ ID number: i044500384</textarea>
       const currencySelect = document.getElementById('currency-select'); // NEW: Currency selector reference
       const languageSelect = document.getElementById('language-select'); // NEW: Language selector reference
 
+      // Image upload elements
+      const logoUpload = document.getElementById('logo-upload');
+      const signatureUpload = document.getElementById('signature-upload');
+      const logoPreview = document.getElementById('logo-preview');
+      const signaturePreview = document.getElementById('signature-preview');
+      const logoImg = document.getElementById('logo-img');
+      const signatureImg = document.getElementById('signature-img');
+      const displayLogo = document.getElementById('display-logo');
+      const displaySignature = document.getElementById('display-signature');
+      const logoInitials = document.getElementById('logo-initials');
+      const removeLogo = document.getElementById('remove-logo');
+      const removeSignature = document.getElementById('remove-signature');
+
+      // Load saved images
+      function loadSavedImages() {
+        if (logoBase64) {
+          logoImg.src = logoBase64;
+          displayLogo.src = logoBase64;
+          logoPreview.classList.remove('hidden');
+          displayLogo.classList.remove('hidden');
+          logoInitials.classList.add('hidden');
+        }
+        if (signatureBase64) {
+          signatureImg.src = signatureBase64;
+          displaySignature.src = signatureBase64;
+          signaturePreview.classList.remove('hidden');
+          displaySignature.classList.remove('hidden');
+        }
+      }
+
+      // Handle logo upload
+      logoUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.match('image.*')) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            logoBase64 = event.target.result;
+            localStorage.setItem('invoice-logo', logoBase64);
+            logoImg.src = logoBase64;
+            displayLogo.src = logoBase64;
+            logoPreview.classList.remove('hidden');
+            displayLogo.classList.remove('hidden');
+            logoInitials.classList.add('hidden');
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // Handle signature upload
+      signatureUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.match('image.*')) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            signatureBase64 = event.target.result;
+            localStorage.setItem('invoice-signature', signatureBase64);
+            signatureImg.src = signatureBase64;
+            displaySignature.src = signatureBase64;
+            signaturePreview.classList.remove('hidden');
+            displaySignature.classList.remove('hidden');
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // Remove logo
+      removeLogo.addEventListener('click', () => {
+        logoBase64 = '';
+        localStorage.removeItem('invoice-logo');
+        logoPreview.classList.add('hidden');
+        displayLogo.classList.add('hidden');
+        logoInitials.classList.remove('hidden');
+        logoUpload.value = '';
+      });
+
+      // Remove signature
+      removeSignature.addEventListener('click', () => {
+        signatureBase64 = '';
+        localStorage.removeItem('invoice-signature');
+        signaturePreview.classList.add('hidden');
+        displaySignature.classList.add('hidden');
+        signatureUpload.value = '';
+      });
 
       // Money formatter
       const money = (n, cur = 'USD $') => cur + (Number(n || 0)).toFixed(2);
@@ -378,13 +528,14 @@ ID number: i044500384</textarea>
       }
 
       // Get invoice data from the form fields
-      // UPDATED: Saves the selected currency
+      // UPDATED: Saves the selected currency, images, and status
       function getInvoiceData(){
         const items = [...tbody.querySelectorAll('tr')].map(tr=>{
           const [desc,currEl,qtyEl,rateEl] = tr.querySelectorAll('input');
           const amount = tr.querySelector('.amount').textContent;
           return { description: desc.value, currency: currEl.value, quantity: parseFloat(qtyEl.value)||0, rate: parseFloat(rateEl.value)||0, amount: parseFloat(amount)||0 };
         });
+        const totalAmount = parseFloat(totalEl.textContent.replace(/[^0-9.-]+/g, "")) || 0;
         return {
           invoiceNumber: document.getElementById('invoice-number')?.value,
           invoiceDate: document.getElementById('invoice-date')?.value,
@@ -394,10 +545,14 @@ ID number: i044500384</textarea>
           notes: document.getElementById('notes')?.value,
           tax: parseFloat(taxInput.value) || 0,
           paymentDetails: paymentDetailsTextarea?.value,
-          currency: currencySelect.value, // NEW: Save the selected currency
+          currency: currencySelect.value,
           subtotal: subtotalEl?.textContent,
           total: totalEl?.textContent,
+          totalAmount: totalAmount,
           items,
+          logo: logoBase64,
+          signature: signatureBase64,
+          status: 'draft', // Default status
           createdAt: new Date().toISOString()
         };
       }
@@ -423,13 +578,52 @@ ID number: i044500384</textarea>
       }
       // Local storage functions
       const STORAGE_KEY = 'invoices-7zones';
-      function saveLocal(){
-        const list = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+      async function saveLocal(){
         const entry = { id: Date.now().toString(), ...getInvoiceData() };
+
+        // Save to localStorage
+        const list = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
         list.push(entry);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+
+        // Save to Supabase if configured
+        if (supabase) {
+          try {
+            const { data, error } = await supabase
+              .from('invoices')
+              .insert([{
+                invoice_number: entry.invoiceNumber,
+                invoice_date: entry.invoiceDate,
+                due_date: entry.dueDate,
+                bill_to: entry.billTo,
+                ship_to: entry.shipTo,
+                notes: entry.notes,
+                tax: entry.tax,
+                payment_details: entry.paymentDetails,
+                currency: entry.currency,
+                total_amount: entry.totalAmount,
+                items: entry.items,
+                logo: entry.logo,
+                signature: entry.signature,
+                status: entry.status,
+                created_at: entry.createdAt
+              }]);
+
+            if (error) {
+              console.error('Supabase save error:', error);
+              toast('Saved locally (Supabase error)');
+            } else {
+              toast(translations[currentLang].invoiceSaved + ' (Local + Cloud)');
+            }
+          } catch (err) {
+            console.error('Supabase error:', err);
+            toast(translations[currentLang].invoiceSaved + ' (Local only)');
+          }
+        } else {
+          toast(translations[currentLang].invoiceSaved);
+        }
+
         loadLocalList();
-        toast(translations[currentLang].invoiceSaved);
       }
 
       function loadLocalList(){
@@ -473,6 +667,7 @@ ID number: i044500384</textarea>
 
       // Initial setup
       setLanguage('en'); // Set default language
+      loadSavedImages(); // Load saved logo and signature
       loadLocalList();
       // Seed example rows (explicitly using USD, which is the default selector value)
       addRow('Aug 2025 – General', 'USD $', 1, 30);
@@ -518,12 +713,24 @@ ID number: i044500384</textarea>
 
         // --- ZONE 1 – From (Seller) ---
         let zone1_y_start = y;
+
+        // Add logo if available
+        if (logoBase64) {
+          try {
+            doc.addImage(logoBase64, 'PNG', page.m, y, 48, 48);
+          } catch (e) {
+            console.error('Error adding logo to PDF:', e);
+          }
+        }
+
+        const textStartX = logoBase64 ? page.m + 60 : page.m;
+
         doc.setFontSize(10); doc.setTextColor(100);
-        doc.text('From', page.m, y);
+        doc.text('From', textStartX, y);
         y += 16; // space for "From" label
 
         doc.setTextColor(30); doc.setFontSize(12); doc.setFont('helvetica','bold');
-        doc.text('Adolfo Andrés Hincapié Garcia', page.m, y);
+        doc.text('Adolfo Andrés Hincapié Garcia', textStartX, y);
         y += text_line_height; // space for name
 
         doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(60);
@@ -535,7 +742,7 @@ ID number: i044500384</textarea>
           'Website: https://aahincapie.github.io/about/'
         ];
         fromLines.forEach(line => {
-            doc.text(line, page.m, y);
+            doc.text(line, textStartX, y);
             y += text_line_height;
         });
         let zone1_bottom_y = y; // Keep track of ZONE 1's bottom edge
@@ -676,9 +883,31 @@ ID number: i044500384</textarea>
         // Optional: Signature line (can be static or dynamic)
         doc.setFontSize(10); doc.setTextColor(60);
         doc.text('Signature', page.m, y);
-        doc.setDrawColor(180); // Lighter line for signature
-        doc.line(page.m, y + 20, page.m + 200, y + 20); // Draw a line for signature
 
+        // Add signature image if available
+        if (signatureBase64) {
+          try {
+            doc.addImage(signatureBase64, 'PNG', page.m, y + 5, 80, 30);
+          } catch (e) {
+            console.error('Error adding signature to PDF:', e);
+            // Fallback to line if signature fails
+            doc.setDrawColor(180);
+            doc.line(page.m, y + 20, page.m + 200, y + 20);
+          }
+        } else {
+          doc.setDrawColor(180); // Lighter line for signature
+          doc.line(page.m, y + 20, page.m + 200, y + 20); // Draw a line for signature
+        }
+
+        // Update status to 'sent' when downloading PDF
+        if (supabase) {
+          const invoiceNum = document.getElementById('invoice-number').value;
+          supabase
+            .from('invoices')
+            .update({ status: 'sent' })
+            .eq('invoice_number', invoiceNum)
+            .then(() => console.log('Status updated to sent'));
+        }
 
         // Save with invoice number in filename
         const filename = `invoice-client${invoiceNumber ? '-' + invoiceNumber : ''}.pdf`;
