@@ -1,9 +1,0 @@
-/* Space Grotesk (display/sans) + JetBrains Mono (technical/mono) — both used verbatim from the
-   source codebase. These are stock Google Fonts, not substitutions, so we pull them from the
-   Google Fonts CDN rather than bundling static files. */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-:root{
-  --font-sans: "Space Grotesk", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-}
