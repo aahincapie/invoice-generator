@@ -26,6 +26,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Create config.js from secrets
+        run: |
+          cat > config.js << EOF
+          // Supabase Configuration
+          // Auto-generated during GitHub Pages deployment
+
+          const SUPABASE_CONFIG = {
+            url: 'https://fwpadfroagpzkmcxzppq.supabase.co',
+            publishableKey: '${{ secrets.SUPABASE_PUBLISHABLE_KEY }}'
+          };
+          EOF
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
