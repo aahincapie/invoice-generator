@@ -7,31 +7,25 @@ on:
       - master
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Build job
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create config.js from secrets
+      - name: Create config.js
         run: |
           cat > config.js << EOF
-          // Supabase Configuration
-          // Auto-generated during GitHub Pages deployment
-
           const SUPABASE_CONFIG = {
             url: 'https://fwpadfroagpzkmcxzppq.supabase.co',
             publishableKey: '${{ secrets.SUPABASE_PUBLISHABLE_KEY }}'
@@ -46,7 +40,6 @@ jobs:
         with:
           path: '.'
 
-  # Deployment job
   deploy:
     environment:
       name: github-pages
