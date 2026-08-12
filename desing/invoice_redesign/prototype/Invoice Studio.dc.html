@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/carbonsourcing-design-system-dc6bcea2-ea57-4d58-bb1d-0a9fc441137d/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/carbonsourcing-design-system-dc6bcea2-ea57-4d58-bb1d-0a9fc441137d/tokens/colors.css">
+<link rel="stylesheet" href="_ds/carbonsourcing-design-system-dc6bcea2-ea57-4d58-bb1d-0a9fc441137d/tokens/typography.css">
+<link rel="stylesheet" href="_ds/carbonsourcing-design-system-dc6bcea2-ea57-4d58-bb1d-0a9fc441137d/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/carbonsourcing-design-system-dc6bcea2-ea57-4d58-bb1d-0a9fc441137d/tokens/effects.css">
+<link rel="stylesheet" href="_ds/carbonsourcing-design-system-dc6bcea2-ea57-4d58-bb1d-0a9fc441137d/components/base.css">
+<link rel="stylesheet" href="_ds/carbonsourcing-design-system-dc6bcea2-ea57-4d58-bb1d-0a9fc441137d/styles.css">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="_ds/carbonsourcing-design-system-dc6bcea2-ea57-4d58-bb1d-0a9fc441137d/_ds_bundle.js"></script>
+<style>
+  body { margin: 0; background: var(--background); color: var(--foreground); font-family: "Space Grotesk", system-ui, sans-serif; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { color: var(--cs-cyan-700); }
+  input, textarea, select, button { font-family: inherit; }
+  ::placeholder { color: var(--muted-foreground); }
+</style>
+</helmet>
+
+<sc-if value="{{ isSignin }}" hint-placeholder-val="{{ true }}">
+  <div class="cs-grid-pattern" style="min-height: 100vh; display: grid; place-items: center; background: var(--background); padding: 48px">
+    <div style="width: 420px">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 28px">
+        <div style="width: 36px; height: 36px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; color: var(--primary)">
+          <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.Icon" name="file-text" size="18" hint-size="18px,18px"></x-import>
+        </div>
+        <div style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em">Invoice Studio</div>
+      </div>
+      <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-sm, 0 1px 2px rgba(0,0,0,.05)); padding: 28px">
+        <div style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">{{ t.signInTitle }}</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.02em; color: var(--muted-foreground); margin-top: 6px">[auth.email_password]</div>
+        <div style="display: grid; gap: 14px; margin-top: 22px">
+          <label style="display: grid; gap: 6px; font-size: 12px; color: var(--muted-foreground)">{{ t.email }}
+            <input value="andres@ahi.consulting" style="height: 38px; border: 1px solid var(--input); border-radius: 6px; padding: 0 10px; background: var(--background); color: var(--foreground); font-size: 14px">
+          </label>
+          <label style="display: grid; gap: 6px; font-size: 12px; color: var(--muted-foreground)">{{ t.password }}
+            <input type="password" value="••••••••••" style="height: 38px; border: 1px solid var(--input); border-radius: 6px; padding: 0 10px; background: var(--background); color: var(--foreground); font-size: 14px">
+          </label>
+          <button onClick="{{ signIn }}" style="height: 40px; border: none; border-radius: 6px; background: var(--primary); color: var(--primary-foreground); font-weight: 600; font-size: 14px; cursor: pointer">{{ t.signIn }}</button>
+          <button onClick="{{ signIn }}" style="height: 40px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--foreground); font-weight: 600; font-size: 14px; cursor: pointer" style-hover="background: var(--accent)">{{ t.createAccount }}</button>
+        </div>
+      </div>
+      <div style="margin-top: 16px; font-size: 12px; color: var(--muted-foreground); text-align: center">{{ t.signInNote }}</div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showApp }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; min-height: 100vh; background: var(--background)">
+
+  <aside style="width: 232px; flex-shrink: 0; background: var(--sidebar); border-right: 1px solid var(--sidebar-border); display: flex; flex-direction: column; padding: 16px 12px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 6px 8px 18px">
+      <div style="width: 30px; height: 30px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; color: var(--primary)">
+        <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.Icon" name="file-text" size="16" hint-size="16px,16px"></x-import>
+      </div>
+      <div style="font-size: 15px; font-weight: 700; letter-spacing: -0.02em">Invoice Studio</div>
+    </div>
+    <nav style="display: grid; gap: 2px">
+      <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.NavItem" icon="bar-chart-3" label="{{ t.navDashboard }}" active="{{ isDashboard }}" onClick="{{ goDashboard }}" hint-size="100%,34px"></x-import>
+      <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.NavItem" icon="file-text" label="{{ t.navEditor }}" active="{{ isEditor }}" onClick="{{ goEditor }}" hint-size="100%,34px"></x-import>
+      <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.NavItem" icon="users" label="{{ t.navClients }}" active="{{ isClients }}" onClick="{{ goClients }}" hint-size="100%,34px"></x-import>
+      <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.NavItem" icon="settings" label="{{ t.navSettings }}" active="{{ isSettings }}" onClick="{{ goSettings }}" hint-size="100%,34px"></x-import>
+    </nav>
+
+    <div style="margin-top: 24px; padding: 12px; border: 1px solid var(--sidebar-border); border-radius: 10px; background: var(--background)">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.02em; color: var(--muted-foreground)">[outstanding.total]</div>
+      <div style="font-size: 20px; font-weight: 700; margin-top: 6px; letter-spacing: -0.02em">{{ outstandingTotal }}</div>
+      <div style="font-size: 11px; color: var(--muted-foreground); margin-top: 2px">{{ outstandingNote }}</div>
+    </div>
+
+    <div style="flex: 1"></div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-top: 1px solid var(--sidebar-border)">
+      <div style="width: 28px; height: 28px; border-radius: 999px; background: var(--primary); color: var(--primary-foreground); display: grid; place-items: center; font-size: 11px; font-weight: 700">AH</div>
+      <div style="flex: 1; min-width: 0">
+        <div style="font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Andrés Hincapié</div>
+        <div style="font-size: 10px; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace">solo</div>
+      </div>
+      <button onClick="{{ signOut }}" title="Sign out" style="background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; display: grid; place-items: center; padding: 4px">
+        <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.Icon" name="log-out" size="16" hint-size="16px,16px"></x-import>
+      </button>
+    </div>
+  </aside>
+
+  <main style="flex: 1; min-width: 0; display: flex; flex-direction: column">
+    <header style="height: 60px; flex-shrink: 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 0 28px; background: var(--background)">
+      <div style="flex: 1; min-width: 0">
+        <div style="font-size: 16px; font-weight: 700; letter-spacing: -0.02em">{{ pageTitle }}</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.02em; color: var(--muted-foreground)">{{ pageTag }}</div>
+      </div>
+      <select value="{{ lang }}" onChange="{{ onLang }}" style="height: 32px; border: 1px solid var(--input); border-radius: 6px; background: var(--background); color: var(--foreground); font-size: 12px; padding: 0 8px; font-family: 'JetBrains Mono', monospace">
+        <option value="en">EN</option>
+        <option value="es">ES</option>
+        <option value="pt">PT</option>
+      </select>
+      <select value="{{ currency }}" onChange="{{ onCurrency }}" style="height: 32px; border: 1px solid var(--input); border-radius: 6px; background: var(--background); color: var(--foreground); font-size: 12px; padding: 0 8px; font-family: 'JetBrains Mono', monospace">
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+        <option value="BRL">BRL</option>
+        <option value="COP">COP</option>
+      </select>
+      <button onClick="{{ newInvoice }}" style="height: 32px; padding: 0 14px; border: none; border-radius: 6px; background: var(--primary); color: var(--primary-foreground); font-size: 13px; font-weight: 600; cursor: pointer">{{ t.newInvoice }}</button>
+    </header>
+
+    <div style="flex: 1; overflow: auto; padding: 28px">
+
+      <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="display: grid; gap: 20px; max-width: 1180px">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px">
+            <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+              <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px">
+                <div style="display: flex; align-items: center; gap: 8px; color: var(--muted-foreground)">
+                  <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.Icon" name="{{ k.icon }}" size="14" hint-size="14px,14px"></x-import>
+                  <span style="font-size: 12px">{{ k.label }}</span>
+                </div>
+                <div style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em; margin-top: 10px">{{ k.value }}</div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground); margin-top: 4px">{{ k.sub }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px">
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px">
+              <div style="display: flex; align-items: baseline; justify-content: space-between">
+                <div style="font-size: 14px; font-weight: 700">{{ t.revenueTitle }}</div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground)">[revenue.by_month]</div>
+              </div>
+              <div style="display: flex; align-items: flex-end; gap: 14px; height: 180px; margin-top: 22px; border-bottom: 1px solid var(--border); padding-bottom: 0">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="8">
+                  <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end">
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted-foreground)">{{ b.value }}</div>
+                    <div style="width: 100%; border-radius: 4px 4px 0 0; background: {{ b.color }}; height: {{ b.h }}%"></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display: flex; gap: 14px; margin-top: 8px">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="8">
+                  <div style="flex: 1; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground)">{{ b.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: grid; gap: 16px; align-content: start">
+              <div style="font-size: 14px; font-weight: 700">{{ t.topClients }}</div>
+              <sc-for list="{{ topClients }}" as="c" hint-placeholder-count="4">
+                <div style="display: grid; gap: 6px">
+                  <div style="display: flex; justify-content: space-between; font-size: 13px">
+                    <span style="font-weight: 600">{{ c.name }}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; color: var(--muted-foreground)">{{ c.value }}</span>
+                  </div>
+                  <div style="height: 6px; border-radius: 999px; background: var(--muted)">
+                    <div style="height: 6px; border-radius: 999px; background: var(--primary); width: {{ c.pct }}%"></div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border)">
+              <div style="font-size: 14px; font-weight: 700; flex: 1">{{ t.invoicesTitle }}</div>
+              <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="{{ t.searchPlaceholder }}" style="height: 32px; width: 240px; border: 1px solid var(--input); border-radius: 6px; padding: 0 10px; background: var(--background); color: var(--foreground); font-size: 13px">
+              <select value="{{ statusFilter }}" onChange="{{ onFilter }}" style="height: 32px; border: 1px solid var(--input); border-radius: 6px; background: var(--background); color: var(--foreground); font-size: 13px; padding: 0 8px">
+                <option value="">{{ t.allStatuses }}</option>
+                <option value="draft">{{ t.draft }}</option>
+                <option value="ready">{{ t.ready }}</option>
+                <option value="paid">{{ t.paid }}</option>
+                <option value="overdue">{{ t.overdue }}</option>
+              </select>
+            </div>
+            <table style="width: 100%; border-collapse: collapse">
+              <thead>
+                <tr style="background: var(--muted)">
+                  <th style="text-align: left; padding: 10px 20px; font-size: 11px; font-weight: 600; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace">{{ t.thNumber }}</th>
+                  <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace">{{ t.thClient }}</th>
+                  <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace">{{ t.thIssued }}</th>
+                  <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace">{{ t.thDue }}</th>
+                  <th style="text-align: right; padding: 10px 12px; font-size: 11px; font-weight: 600; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace">{{ t.thAmount }}</th>
+                  <th style="text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace">{{ t.thStatus }}</th>
+                  <th style="padding: 10px 20px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+                  <tr style="border-top: 1px solid var(--border)" style-hover="background: var(--muted)">
+                    <td style="padding: 12px 20px; font-size: 13px; font-weight: 600; font-family: 'JetBrains Mono', monospace">{{ r.number }}</td>
+                    <td style="padding: 12px; font-size: 13px">{{ r.client }}</td>
+                    <td style="padding: 12px; font-size: 13px; color: var(--muted-foreground)">{{ r.issued }}</td>
+                    <td style="padding: 12px; font-size: 13px; color: var(--muted-foreground)">{{ r.due }}</td>
+                    <td style="padding: 12px; font-size: 13px; text-align: right; font-weight: 600; font-family: 'JetBrains Mono', monospace">{{ r.amount }}</td>
+                    <td style="padding: 12px">
+                      <span style="display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; background: {{ r.chipBg }}; color: {{ r.chipFg }}">{{ r.statusLabel }}</span>
+                    </td>
+                    <td style="padding: 12px 20px; text-align: right">
+                      <button onClick="{{ r.onOpen }}" style="background: transparent; border: 1px solid var(--border); border-radius: 6px; height: 28px; padding: 0 10px; font-size: 12px; font-weight: 600; color: var(--foreground); cursor: pointer" style-hover="background: var(--accent)">{{ t.open }}</button>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEditor }}" hint-placeholder-val="{{ true }}">
+        <div style="display: grid; grid-template-columns: 1fr 300px; gap: 20px; max-width: 1180px; align-items: start">
+          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 36px 40px; position: relative">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start">
+              <div style="display: flex; gap: 14px; align-items: center">
+                <div style="width: 46px; height: 46px; border-radius: 10px; background: var(--primary); color: var(--primary-foreground); display: grid; place-items: center; font-weight: 700; font-size: 14px">AHI</div>
+                <div>
+                  <div style="font-size: 15px; font-weight: 700">{{ profile.tradeName }}</div>
+                  <div style="font-size: 12px; color: var(--muted-foreground); line-height: 1.6">
+                    <div>{{ profile.address }}</div>
+                    <div>{{ profile.postal }}</div>
+                    <div>{{ profile.phone }}</div>
+                    <div>{{ profile.email }}</div>
+                    <div>{{ profile.website }}</div>
+                  </div>
+                </div>
+              </div>
+              <div style="text-align: right">
+                <div style="font-size: 26px; font-weight: 700; letter-spacing: -0.03em">{{ t.invoice }}</div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted-foreground); margin-top: 4px">#{{ inv.number }}</div>
+              </div>
+            </div>
+
+            <div style="height: 1px; background: var(--border); margin: 26px 0"></div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 200px; gap: 24px">
+              <div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground); margin-bottom: 8px">[bill_to]</div>
+                <select value="{{ inv.clientId }}" onChange="{{ onClientPick }}" style="width: 100%; height: 32px; border: 1px solid var(--input); border-radius: 6px; background: var(--background); color: var(--foreground); font-size: 13px; padding: 0 8px; margin-bottom: 8px">
+                  <sc-for list="{{ clientOptions }}" as="c" hint-placeholder-count="5">
+                    <option value="{{ c.id }}">{{ c.name }}</option>
+                  </sc-for>
+                </select>
+                <textarea value="{{ inv.billTo }}" onChange="{{ onBillTo }}" rows="4" style="width: 100%; border: 1px solid var(--input); border-radius: 6px; padding: 8px; font-size: 13px; line-height: 1.5; background: var(--background); color: var(--foreground); resize: vertical"></textarea>
+              </div>
+              <div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground); margin-bottom: 8px">[project_reference]</div>
+                <textarea value="{{ inv.reference }}" onChange="{{ onReference }}" rows="6" style="width: 100%; border: 1px solid var(--input); border-radius: 6px; padding: 8px; font-size: 13px; line-height: 1.5; background: var(--background); color: var(--foreground); resize: vertical"></textarea>
+              </div>
+              <div style="display: grid; gap: 10px; align-content: start">
+                <label style="display: grid; gap: 4px; font-size: 11px; color: var(--muted-foreground)">{{ t.issued }}
+                  <input type="date" value="{{ inv.issued }}" onChange="{{ onIssued }}" style="height: 32px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground)">
+                </label>
+                <label style="display: grid; gap: 4px; font-size: 11px; color: var(--muted-foreground)">{{ t.due }}
+                  <input type="date" value="{{ inv.due }}" onChange="{{ onDue }}" style="height: 32px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground)">
+                </label>
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--background)">
+                  <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground)">[balance_due]</div>
+                  <div style="font-size: 20px; font-weight: 700; color: var(--primary); letter-spacing: -0.02em; margin-top: 2px">{{ totals.balance }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 30px">
+              <div style="display: grid; grid-template-columns: 1fr 90px 130px 130px 32px; gap: 10px; padding: 0 0 8px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground); border-bottom: 1px solid var(--border)">
+                <div>{{ t.description }}</div>
+                <div style="text-align: right">{{ t.qty }}</div>
+                <div style="text-align: right">{{ t.rate }}</div>
+                <div style="text-align: right">{{ t.amount }}</div>
+                <div></div>
+              </div>
+              <sc-for list="{{ items }}" as="it" hint-placeholder-count="3">
+                <div style="display: grid; grid-template-columns: 1fr 90px 130px 130px 32px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border)">
+                  <input value="{{ it.desc }}" onChange="{{ it.onDesc }}" style="height: 32px; border: 1px solid transparent; border-radius: 6px; padding: 0 8px; font-size: 13px; background: transparent; color: var(--foreground)" style-focus="border-color: var(--ring); background: var(--background)">
+                  <input value="{{ it.qty }}" onChange="{{ it.onQty }}" style="height: 32px; border: 1px solid transparent; border-radius: 6px; padding: 0 8px; font-size: 13px; text-align: right; background: transparent; color: var(--foreground); font-family: 'JetBrains Mono', monospace" style-focus="border-color: var(--ring); background: var(--background)">
+                  <input value="{{ it.rate }}" onChange="{{ it.onRate }}" style="height: 32px; border: 1px solid transparent; border-radius: 6px; padding: 0 8px; font-size: 13px; text-align: right; background: transparent; color: var(--foreground); font-family: 'JetBrains Mono', monospace" style-focus="border-color: var(--ring); background: var(--background)">
+                  <div style="text-align: right; font-size: 13px; font-weight: 600; font-family: 'JetBrains Mono', monospace">{{ it.amount }}</div>
+                  <button onClick="{{ it.onRemove }}" style="background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; display: grid; place-items: center" style-hover="color: var(--destructive)">
+                    <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.Icon" name="x-circle" size="15" hint-size="15px,15px"></x-import>
+                  </button>
+                </div>
+              </sc-for>
+              <button onClick="{{ addItem }}" style="margin-top: 12px; width: 100%; height: 36px; border: 1px dashed var(--border); border-radius: 8px; background: transparent; color: var(--primary); font-size: 13px; font-weight: 600; cursor: pointer" style-hover="background: var(--accent)">{{ t.addLine }}</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 300px; gap: 30px; margin-top: 28px">
+              <div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground); margin-bottom: 8px">[notes]</div>
+                <textarea value="{{ inv.notes }}" onChange="{{ onNotes }}" rows="5" style="width: 100%; border: 1px solid var(--input); border-radius: 6px; padding: 8px; font-size: 13px; line-height: 1.5; background: var(--background); color: var(--foreground); resize: vertical"></textarea>
+              </div>
+              <div style="display: grid; gap: 8px; align-content: start; font-size: 13px">
+                <div style="display: flex; justify-content: space-between"><span style="color: var(--muted-foreground)">{{ t.subtotal }}</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 600">{{ totals.subtotal }}</span></div>
+                <div style="display: flex; justify-content: space-between; align-items: center">
+                  <span style="color: var(--muted-foreground); display: flex; align-items: center; gap: 6px">{{ t.tax }}
+                    <input value="{{ inv.tax }}" onChange="{{ onTax }}" style="width: 52px; height: 26px; border: 1px solid var(--input); border-radius: 6px; padding: 0 6px; text-align: right; font-size: 12px; background: var(--background); color: var(--foreground); font-family: 'JetBrains Mono', monospace">%
+                  </span>
+                  <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600">{{ totals.taxAmount }}</span>
+                </div>
+                <div style="height: 1px; background: var(--border); margin: 4px 0"></div>
+                <div style="display: flex; justify-content: space-between; font-size: 16px"><span style="font-weight: 600">{{ t.total }}</span><span style="font-family: 'JetBrains Mono', monospace; font-weight: 700">{{ totals.total }}</span></div>
+                <div style="display: flex; justify-content: space-between; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-foreground)"><span>{{ totals.fxLabel }}</span><span>{{ totals.fxValue }}</span></div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 260px; gap: 30px; margin-top: 28px; align-items: end">
+              <div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground); margin-bottom: 8px">[payment_details]</div>
+                <div style="border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.7; color: var(--foreground); background: var(--background)">
+                  <div>{{ profile.legalName }}</div>
+                  <div style="font-family: 'JetBrains Mono', monospace; color: var(--muted-foreground)">Wise · USD account · Routing 026073150</div>
+                  <div style="font-family: 'JetBrains Mono', monospace; color: var(--muted-foreground)">Account 8310781234 · SWIFT CMFGUS33</div>
+                </div>
+              </div>
+              <div style="text-align: center">
+                <div style="height: 54px; border-bottom: 1px solid var(--border); display: grid; place-items: end center; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-foreground); padding-bottom: 6px">{{ t.signature }}</div>
+                <div style="font-size: 12px; margin-top: 8px">Andrés Hincapié</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; gap: 16px; position: sticky; top: 0">
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: grid; gap: 10px">
+              <div style="font-size: 13px; font-weight: 700">{{ t.actions }}</div>
+              <button onClick="{{ save }}" style="height: 36px; border: none; border-radius: 6px; background: var(--primary); color: var(--primary-foreground); font-size: 13px; font-weight: 600; cursor: pointer">{{ t.save }}</button>
+              <button onClick="{{ save }}" style="height: 36px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--foreground); font-size: 13px; font-weight: 600; cursor: pointer" style-hover="background: var(--accent)">{{ t.downloadPdf }}</button>
+              <button onClick="{{ duplicate }}" style="height: 36px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--foreground); font-size: 13px; font-weight: 600; cursor: pointer" style-hover="background: var(--accent)">{{ t.duplicate }}</button>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground); text-align: center">{{ saveState }}</div>
+            </div>
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; display: grid; gap: 10px">
+              <div style="font-size: 13px; font-weight: 700">{{ t.status }}</div>
+              <select value="{{ inv.status }}" onChange="{{ onStatus }}" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; background: var(--background); color: var(--foreground); font-size: 13px; padding: 0 8px">
+                <option value="draft">{{ t.draft }}</option>
+                <option value="ready">{{ t.ready }}</option>
+                <option value="paid">{{ t.paid }}</option>
+                <option value="overdue">{{ t.overdue }}</option>
+              </select>
+              <div style="display: grid; gap: 8px; margin-top: 4px">
+                <sc-for list="{{ timeline }}" as="s" hint-placeholder-count="4">
+                  <div style="display: flex; gap: 10px; align-items: center; font-size: 12px; color: {{ s.color }}">
+                    <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.Icon" name="{{ s.icon }}" size="14" hint-size="14px,14px"></x-import>
+                    <span style="flex: 1">{{ s.label }}</span>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px">{{ s.date }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px">
+              <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px">{{ t.fxTitle }}</div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-foreground); line-height: 1.8">
+                <div>{{ totals.fxRateLine }}</div>
+                <div>{{ totals.fxDateLine }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isClients }}" hint-placeholder-val="{{ true }}">
+        <div style="display: grid; gap: 16px; max-width: 1180px">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px">
+            <sc-for list="{{ clients }}" as="c" hint-placeholder-count="6">
+              <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: grid; gap: 12px">
+                <div style="display: flex; gap: 12px; align-items: center">
+                  <div style="width: 36px; height: 36px; border-radius: 8px; background: var(--accent); color: var(--primary); display: grid; place-items: center; font-size: 12px; font-weight: 700">{{ c.initials }}</div>
+                  <div style="min-width: 0">
+                    <div style="font-size: 14px; font-weight: 700; letter-spacing: -0.01em">{{ c.name }}</div>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted-foreground); font-family: 'JetBrains Mono', monospace">
+                      <span style="padding: 1px 5px; border-radius: 4px; background: var(--muted); color: var(--foreground)">{{ c.code }}</span>
+                      <span>{{ c.country }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="font-size: 12px; color: var(--muted-foreground); line-height: 1.6">{{ c.address }}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 10px">
+                  <div>
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground)">[billed.total]</div>
+                    <div style="font-size: 14px; font-weight: 700">{{ c.billed }}</div>
+                  </div>
+                  <button onClick="{{ c.onNew }}" style="height: 30px; padding: 0 12px; border: 1px solid var(--border); border-radius: 6px; background: transparent; font-size: 12px; font-weight: 600; color: var(--foreground); cursor: pointer" style-hover="background: var(--accent)">{{ t.newInvoice }}</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isSettings }}" hint-placeholder-val="{{ true }}">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 900px; align-items: start">
+          <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px; display: grid; gap: 14px">
+            <div style="font-size: 14px; font-weight: 700">{{ t.company }}</div>
+            <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.tradeName }}
+              <input value="{{ profile.tradeName }}" onChange="{{ onProfile.tradeName }}" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground)">
+            </label>
+            <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.legalName }}
+              <input value="{{ profile.legalName }}" onChange="{{ onProfile.legalName }}" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground)">
+            </label>
+            <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.taxId }}
+              <input value="{{ profile.taxId }}" onChange="{{ onProfile.taxId }}" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground); font-family: 'JetBrains Mono', monospace">
+            </label>
+            <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.address }}
+              <textarea value="{{ profile.address }}" onChange="{{ onProfile.address }}" rows="2" style="border: 1px solid var(--input); border-radius: 6px; padding: 8px; font-size: 13px; background: var(--background); color: var(--foreground); resize: vertical"></textarea>
+            </label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+              <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.postal }}
+                <input value="{{ profile.postal }}" onChange="{{ onProfile.postal }}" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground)">
+              </label>
+              <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.phone }}
+                <input value="{{ profile.phone }}" onChange="{{ onProfile.phone }}" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground)">
+              </label>
+              <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.emailLabel }}
+                <input value="{{ profile.email }}" onChange="{{ onProfile.email }}" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground)">
+              </label>
+              <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.website }}
+                <input value="{{ profile.website }}" onChange="{{ onProfile.website }}" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground)">
+              </label>
+            </div>
+            <div style="font-size: 11px; color: var(--muted-foreground); line-height: 1.5">{{ t.profileNote }}</div>
+            <div style="display: flex; gap: 12px">
+              <div style="flex: 1; border: 1px dashed var(--border); border-radius: 8px; height: 76px; display: grid; place-items: center; gap: 4px; color: var(--muted-foreground); font-size: 11px">
+                <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.Icon" name="image" size="16" hint-size="16px,16px"></x-import>
+                {{ t.uploadLogo }}
+              </div>
+              <div style="flex: 1; border: 1px dashed var(--border); border-radius: 8px; height: 76px; display: grid; place-items: center; gap: 4px; color: var(--muted-foreground); font-size: 11px">
+                <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.Icon" name="pen-line" size="16" hint-size="16px,16px"></x-import>
+                {{ t.uploadSignature }}
+              </div>
+            </div>
+          </div>
+          <div style="display: grid; gap: 16px">
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px; display: grid; gap: 14px">
+              <div style="font-size: 14px; font-weight: 700">{{ t.numbering }}</div>
+              <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.prefix }}
+                <input value="AHI" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground); font-family: 'JetBrains Mono', monospace">
+              </label>
+              <div style="border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--background)">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground)">[numbering.pattern]</div>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; margin-top: 4px">AHI-<span style="color: var(--primary)">EML</span>-2026-014</div>
+                <div style="font-size: 11px; color: var(--muted-foreground); margin-top: 6px; line-height: 1.5">{{ t.numberingNote }}</div>
+              </div>
+              <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.nextNumber }}
+                <input value="014" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground); font-family: 'JetBrains Mono', monospace">
+              </label>
+              <label style="display: grid; gap: 5px; font-size: 11px; color: var(--muted-foreground)">{{ t.defaultTerms }}
+                <select defaultValue="Net 30" style="height: 34px; border: 1px solid var(--input); border-radius: 6px; padding: 0 8px; font-size: 13px; background: var(--background); color: var(--foreground)">
+                  <option>Net 15</option>
+                  <option>Net 30</option>
+                  <option>Net 45</option>
+                </select>
+              </label>
+            </div>
+            <div style="background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 22px; display: grid; gap: 12px">
+              <div style="font-size: 14px; font-weight: 700">{{ t.sync }}</div>
+              <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--primary)">
+                <x-import component-from-global-scope="CarbonSourcingDesignSystem_dc6bce.Icon" name="check-circle-2" size="16" hint-size="16px,16px"></x-import>
+                <span style="flex: 1; color: var(--foreground)">{{ t.syncConnected }}</span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-foreground)">supabase</span>
+              </div>
+              <div style="font-size: 12px; color: var(--muted-foreground); line-height: 1.6">{{ t.syncNote }}</div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+const STR = {
+  en: { signInTitle: "Sign in", email: "Email", password: "Password", signIn: "Sign in", createAccount: "Create account",
+    signInNote: "Invoices sync to your private cloud. Only you can see them.",
+    navDashboard: "Dashboard", navEditor: "Invoice editor", navClients: "Clients", navSettings: "Settings",
+    newInvoice: "New invoice", revenueTitle: "Revenue", topClients: "Top clients", invoicesTitle: "Invoices",
+    searchPlaceholder: "Search number or client", allStatuses: "All statuses", draft: "Draft", ready: "Ready to send", paid: "Paid", overdue: "Overdue",
+    thNumber: "number", thClient: "client", thIssued: "issued", thDue: "due", thAmount: "amount", thStatus: "status", open: "Open",
+    invoice: "Invoice", issued: "Issue date", due: "Due date", description: "description", qty: "qty", rate: "rate", amount: "amount",
+    addLine: "+ Line item", subtotal: "Subtotal", tax: "Tax", total: "Total", signature: "Signature",
+    actions: "Actions", save: "Save invoice", downloadPdf: "Download PDF", duplicate: "Duplicate", status: "Status", fxTitle: "Exchange rate",
+    company: "Company profile", legalName: "Legal name", taxId: "Tax ID", address: "Address", uploadLogo: "Upload logo", uploadSignature: "Upload signature",
+    numbering: "Numbering", prefix: "Prefix", nextNumber: "Next number", defaultTerms: "Default terms",
+    sync: "Cloud sync", syncConnected: "Connected", syncNote: "Invoices and clients are stored per account with row-level security.",
+    kpiOutstanding: "Outstanding", kpiPaid: "Paid this year", kpiOverdue: "Overdue", kpiAvgDays: "Avg. days to pay",
+    saved: "All changes saved", tCreated: "Created", tSent: "Sent to client", tViewed: "Viewed by client", tPaid: "Payment received", tPending: "Pending",
+    outstandingNote: "across 3 invoices", numberingNote: "Your prefix, then the client code, then year and sequence. Client codes are set on each client.", tradeName: "Trading name", postal: "Postal code", phone: "Phone", emailLabel: "Email", website: "Website", profileNote: "These details print in the invoice header." },
+  es: { signInTitle: "Iniciar sesión", email: "Correo", password: "Contraseña", signIn: "Iniciar sesión", createAccount: "Crear cuenta",
+    signInNote: "Las facturas se sincronizan en tu nube privada. Solo tú las ves.",
+    navDashboard: "Panel", navEditor: "Editor de factura", navClients: "Clientes", navSettings: "Ajustes",
+    newInvoice: "Nueva factura", revenueTitle: "Ingresos", topClients: "Principales clientes", invoicesTitle: "Facturas",
+    searchPlaceholder: "Buscar número o cliente", allStatuses: "Todos los estados", draft: "Borrador", ready: "Lista para enviar", paid: "Pagada", overdue: "Vencida",
+    thNumber: "número", thClient: "cliente", thIssued: "emisión", thDue: "vencimiento", thAmount: "monto", thStatus: "estado", open: "Abrir",
+    invoice: "Factura", issued: "Fecha de emisión", due: "Vencimiento", description: "descripción", qty: "cant.", rate: "tarifa", amount: "monto",
+    addLine: "+ Línea", subtotal: "Subtotal", tax: "Impuesto", total: "Total", signature: "Firma",
+    actions: "Acciones", save: "Guardar factura", downloadPdf: "Descargar PDF", duplicate: "Duplicar", status: "Estado", fxTitle: "Tasa de cambio",
+    company: "Perfil de empresa", legalName: "Nombre legal", taxId: "NIT", address: "Dirección", uploadLogo: "Subir logo", uploadSignature: "Subir firma",
+    numbering: "Numeración", prefix: "Prefijo", nextNumber: "Siguiente número", defaultTerms: "Plazo por defecto",
+    sync: "Sincronización", syncConnected: "Conectado", syncNote: "Las facturas y clientes se guardan por cuenta con seguridad a nivel de fila.",
+    kpiOutstanding: "Por cobrar", kpiPaid: "Cobrado este año", kpiOverdue: "Vencido", kpiAvgDays: "Días promedio de pago",
+    saved: "Cambios guardados", tCreated: "Creada", tSent: "Enviada al cliente", tViewed: "Vista por el cliente", tPaid: "Pago recibido", tPending: "Pendiente",
+    outstandingNote: "en 3 facturas", numberingNote: "Tu prefijo, luego el código del cliente, después año y consecutivo. El código se define en cada cliente.", tradeName: "Nombre comercial", postal: "Código postal", phone: "Teléfono", emailLabel: "Correo", website: "Sitio web", profileNote: "Estos datos se imprimen en el encabezado de la factura." },
+  pt: { signInTitle: "Entrar", email: "E-mail", password: "Senha", signIn: "Entrar", createAccount: "Criar conta",
+    signInNote: "As faturas sincronizam na sua nuvem privada. Só você as vê.",
+    navDashboard: "Painel", navEditor: "Editor de fatura", navClients: "Clientes", navSettings: "Configurações",
+    newInvoice: "Nova fatura", revenueTitle: "Receita", topClients: "Principais clientes", invoicesTitle: "Faturas",
+    searchPlaceholder: "Buscar número ou cliente", allStatuses: "Todos os status", draft: "Rascunho", ready: "Pronta para enviar", paid: "Paga", overdue: "Vencida",
+    thNumber: "número", thClient: "cliente", thIssued: "emissão", thDue: "vencimento", thAmount: "valor", thStatus: "status", open: "Abrir",
+    invoice: "Fatura", issued: "Data de emissão", due: "Vencimento", description: "descrição", qty: "qtd", rate: "taxa", amount: "valor",
+    addLine: "+ Item", subtotal: "Subtotal", tax: "Imposto", total: "Total", signature: "Assinatura",
+    actions: "Ações", save: "Salvar fatura", downloadPdf: "Baixar PDF", duplicate: "Duplicar", status: "Status", fxTitle: "Taxa de câmbio",
+    company: "Perfil da empresa", legalName: "Razão social", taxId: "CNPJ/NIT", address: "Endereço", uploadLogo: "Enviar logo", uploadSignature: "Enviar assinatura",
+    numbering: "Numeração", prefix: "Prefixo", nextNumber: "Próximo número", defaultTerms: "Prazo padrão",
+    sync: "Sincronização", syncConnected: "Conectado", syncNote: "Faturas e clientes são armazenados por conta com segurança em nível de linha.",
+    kpiOutstanding: "A receber", kpiPaid: "Recebido no ano", kpiOverdue: "Vencido", kpiAvgDays: "Dias médios p/ pagar",
+    saved: "Alterações salvas", tCreated: "Criada", tSent: "Enviada ao cliente", tViewed: "Vista pelo cliente", tPaid: "Pagamento recebido", tPending: "Pendente",
+    outstandingNote: "em 3 faturas", numberingNote: "Seu prefixo, depois o código do cliente, então ano e sequência. O código é definido em cada cliente.", tradeName: "Nome comercial", postal: "CEP", phone: "Telefone", emailLabel: "E-mail", website: "Site", profileNote: "Estes dados são impressos no cabeçalho da fatura." }
+};
+
+const RATES = { USD: 1, EUR: 0.92, BRL: 5.42, COP: 3980 };
+const SYM = { USD: "$", EUR: "€", BRL: "R$", COP: "$" };
+
+const USER_PREFIX = "AHI";
+
+const CLIENTS = [
+  { id: "c1", code: "EML", name: "Environmental Markets Ltd", country: "New Zealand", initials: "EM", address: "50 Charles Crt, Lake Hawea 9382, New Zealand", billed: 48200 },
+  { id: "c2", code: "TGC", name: "Terra Global Capital", country: "United States", initials: "TG", address: "1 Sansome St, San Francisco, CA 94104", billed: 31500 },
+  { id: "c3", code: "FAV", name: "Fundação Amazônia Viva", country: "Brazil", initials: "FA", address: "Av. Nazaré 500, Belém, PA, Brasil", billed: 22750 },
+  { id: "c4", code: "CSS", name: "Carbon Sourcing SAS", country: "Colombia", initials: "CS", address: "Cra 43A #1-50, Medellín, Colombia", billed: 18400 },
+  { id: "c5", code: "NFP", name: "Nordic Forest Partners", country: "Finland", initials: "NF", address: "Mannerheimintie 12, Helsinki", billed: 12900 },
+  { id: "c6", code: "VAP", name: "Verra Advisory Pool", country: "United States", initials: "VA", address: "1200 G St NW, Washington DC", billed: 9600 }
+];
+
+function invNumber(clientId, seq) {
+  const c = CLIENTS.find(x => x.id === clientId);
+  return USER_PREFIX + "-" + (c ? c.code : "GEN") + "-2026-" + seq;
+}
+
+const INVOICES = [
+  { id: "i1", number: invNumber("c1", "013"), clientId: "c1", issued: "2026-07-28", due: "2026-08-27", amount: 8400, status: "ready" },
+  { id: "i2", number: invNumber("c3", "012"), clientId: "c3", issued: "2026-07-14", due: "2026-08-13", amount: 6250, status: "paid" },
+  { id: "i3", number: invNumber("c2", "011"), clientId: "c2", issued: "2026-06-30", due: "2026-07-30", amount: 11200, status: "overdue" },
+  { id: "i4", number: invNumber("c4", "010"), clientId: "c4", issued: "2026-06-12", due: "2026-07-12", amount: 4800, status: "paid" },
+  { id: "i5", number: invNumber("c5", "009"), clientId: "c5", issued: "2026-05-29", due: "2026-06-28", amount: 7350, status: "paid" },
+  { id: "i6", number: invNumber("c1", "008"), clientId: "c1", issued: "2026-05-08", due: "2026-06-07", amount: 5100, status: "paid" },
+  { id: "i7", number: invNumber("c6", "007"), clientId: "c6", issued: "2026-04-21", due: "2026-05-21", amount: 3600, status: "draft" }
+];
+
+const MONTHS = [
+  { label: "JAN", v: 9200 }, { label: "FEB", v: 6400 }, { label: "MAR", v: 12800 }, { label: "APR", v: 7100 },
+  { label: "MAY", v: 12450 }, { label: "JUN", v: 16000 }, { label: "JUL", v: 14650 }, { label: "AUG", v: 8400 }
+];
+
+class Component extends DCLogic {
+  state = {
+    screen: "dashboard",
+    lang: "en",
+    currency: "USD",
+    search: "",
+    statusFilter: "",
+    saved: true,
+    seq: "014",
+    profile: {
+      tradeName: "AHI Consulting",
+      legalName: "ADOLFO ANDRÉS HINCAPIE GARCIA",
+      taxId: "NIT 1017.xxx.xxx-1",
+      address: "Legal Address: Cll 34 #86A-41, T7, 401. Medellín, Colombia",
+      postal: "Postal Code: 050032",
+      phone: "Phone: +57 3507439527",
+      email: "Email: bandreshin@gmail.com",
+      website: "Website: https://aahincapie.github.io/about/"
+    },
+    inv: {
+      number: invNumber("c1", "014"),
+      clientId: "c1",
+      billTo: "Environmental Markets Ltd\n50 Charles Crt, Lake Hawea 9382\nNew Zealand",
+      reference: "REDD+ baseline re-assessment — Q3 2026\nDeliverables: revised AD/EF analysis, GIS stratification,\nMRV gap memo. Track-time report attached.",
+      issued: "2026-08-12",
+      due: "2026-09-11",
+      tax: "0",
+      status: "draft",
+      notes: "Detailed breakdown available in the attached track-time report.\nPayment in USD; FX shown for reference only.",
+      items: [
+        { desc: "Senior technical review — REDD+ baseline", qty: "12", rate: "480" },
+        { desc: "GIS stratification & remote-sensing QA", qty: "8", rate: "420" },
+        { desc: "MRV gap analysis memo", qty: "4", rate: "450" }
+      ]
+    }
+  };
+
+  fmt(usd) {
+    const cur = this.state.currency;
+    const v = usd * RATES[cur];
+    const dec = cur === "COP" ? 0 : 2;
+    return SYM[cur] + v.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec }) + (cur === "USD" ? "" : " " + cur);
+  }
+
+  setProfile(patch) { this.setState(s => ({ profile: { ...s.profile, ...patch } })); }
+
+  set(patch) { this.setState(s => ({ inv: { ...s.inv, ...patch }, saved: false })); }
+
+  renderVals() {
+    const s = this.state;
+    const t = STR[s.lang];
+    const screen = s.screen;
+    const clientById = id => CLIENTS.find(c => c.id === id) || CLIENTS[0];
+
+    const statusMeta = {
+      draft: { label: t.draft, bg: "var(--muted)", fg: "var(--muted-foreground)" },
+      ready: { label: t.ready, bg: "var(--accent)", fg: "var(--primary)" },
+      paid: { label: t.paid, bg: "oklch(0.92 0.06 150)", fg: "oklch(0.42 0.11 150)" },
+      overdue: { label: t.overdue, bg: "oklch(0.93 0.06 25)", fg: "var(--destructive)" }
+    };
+
+    const filtered = INVOICES.filter(i => {
+      if (s.statusFilter && i.status !== s.statusFilter) return false;
+      const q = s.search.toLowerCase();
+      if (!q) return true;
+      return i.number.toLowerCase().includes(q) || clientById(i.clientId).name.toLowerCase().includes(q);
+    });
+
+    const rows = filtered.map(i => ({
+      number: i.number, client: clientById(i.clientId).name, issued: i.issued, due: i.due,
+      amount: this.fmt(i.amount), statusLabel: statusMeta[i.status].label,
+      chipBg: statusMeta[i.status].bg, chipFg: statusMeta[i.status].fg,
+      onOpen: () => this.setState({ screen: "editor" })
+    }));
+
+    const outstanding = INVOICES.filter(i => i.status === "ready" || i.status === "overdue").reduce((a, i) => a + i.amount, 0);
+    const paidYtd = INVOICES.filter(i => i.status === "paid").reduce((a, i) => a + i.amount, 0);
+    const overdue = INVOICES.filter(i => i.status === "overdue").reduce((a, i) => a + i.amount, 0);
+
+    const max = Math.max(...MONTHS.map(m => m.v));
+    const bars = MONTHS.map((m, idx) => ({
+      label: m.label, h: Math.round((m.v / max) * 100),
+      value: Math.round(m.v * RATES[s.currency] / (s.currency === "COP" ? 1000000 : 1000)) + (s.currency === "COP" ? "M" : "k"),
+      color: idx === MONTHS.length - 1 ? "var(--chart-3)" : "var(--primary)"
+    }));
+
+    const maxBilled = CLIENTS[0].billed;
+    const topClients = CLIENTS.slice(0, 4).map(c => ({ name: c.name, value: this.fmt(c.billed), pct: Math.round((c.billed / maxBilled) * 100) }));
+
+    const items = s.inv.items.map((it, i) => ({
+      desc: it.desc, qty: it.qty, rate: it.rate,
+      amount: this.fmt((parseFloat(it.qty) || 0) * (parseFloat(it.rate) || 0)),
+      onDesc: e => this.updateItem(i, "desc", e.target.value),
+      onQty: e => this.updateItem(i, "qty", e.target.value),
+      onRate: e => this.updateItem(i, "rate", e.target.value),
+      onRemove: () => this.setState(st => ({ inv: { ...st.inv, items: st.inv.items.filter((_, j) => j !== i) }, saved: false }))
+    }));
+
+    const subtotal = s.inv.items.reduce((a, it) => a + (parseFloat(it.qty) || 0) * (parseFloat(it.rate) || 0), 0);
+    const taxAmount = subtotal * ((parseFloat(s.inv.tax) || 0) / 100);
+    const rate = RATES[s.currency];
+
+    const timelineDefs = [
+      { key: "created", icon: "check-circle-2", label: t.tCreated, date: s.inv.issued, done: true },
+      { key: "sent", icon: "send", label: t.tSent, date: s.inv.status === "draft" ? "—" : s.inv.issued, done: s.inv.status !== "draft" },
+      { key: "viewed", icon: "eye", label: t.tViewed, date: s.inv.status === "paid" || s.inv.status === "overdue" ? s.inv.due : "—", done: s.inv.status === "paid" || s.inv.status === "overdue" },
+      { key: "paid", icon: "wallet", label: t.tPaid, date: s.inv.status === "paid" ? s.inv.due : t.tPending, done: s.inv.status === "paid" }
+    ];
+
+    const titles = { dashboard: t.navDashboard, editor: t.navEditor, clients: t.navClients, settings: t.navSettings };
+    const tags = { dashboard: "[revenue.overview]", editor: "[invoice.compose]", clients: "[clients.directory]", settings: "[account.profile]" };
+
+    return {
+      t, lang: s.lang, currency: s.currency, search: s.search, statusFilter: s.statusFilter,
+      isSignin: screen === "signin", showApp: screen !== "signin",
+      isDashboard: screen === "dashboard", isEditor: screen === "editor", isClients: screen === "clients", isSettings: screen === "settings",
+      pageTitle: titles[screen], pageTag: tags[screen],
+      signIn: () => this.setState({ screen: "dashboard" }),
+      signOut: () => this.setState({ screen: "signin" }),
+      goDashboard: () => this.setState({ screen: "dashboard" }),
+      goEditor: () => this.setState({ screen: "editor" }),
+      goClients: () => this.setState({ screen: "clients" }),
+      goSettings: () => this.setState({ screen: "settings" }),
+      newInvoice: () => this.setState({ screen: "editor" }),
+      onLang: e => this.setState({ lang: e.target.value }),
+      onCurrency: e => this.setState({ currency: e.target.value }),
+      onSearch: e => this.setState({ search: e.target.value }),
+      onFilter: e => this.setState({ statusFilter: e.target.value }),
+      outstandingTotal: this.fmt(outstanding),
+      outstandingNote: t.outstandingNote,
+      kpis: [
+        { icon: "trending-up", label: t.kpiOutstanding, value: this.fmt(outstanding), sub: "[3 open]" },
+        { icon: "check-circle-2", label: t.kpiPaid, value: this.fmt(paidYtd), sub: "[4 settled]" },
+        { icon: "x-circle", label: t.kpiOverdue, value: this.fmt(overdue), sub: "[1 late]" },
+        { icon: "clock", label: t.kpiAvgDays, value: "26", sub: "[net_30 terms]" }
+      ],
+      bars, topClients, rows,
+      clients: CLIENTS.map(c => ({ ...c, billed: this.fmt(c.billed), onNew: () => this.setState(st => ({ screen: "editor", inv: { ...st.inv, clientId: c.id, billTo: c.name + "\n" + c.address, number: invNumber(c.id, st.seq) } })) })),
+      clientOptions: CLIENTS.map(c => ({ id: c.id, name: c.name })),
+      inv: s.inv,
+      profile: s.profile,
+      onProfile: {
+        tradeName: e => this.setProfile({ tradeName: e.target.value }),
+        legalName: e => this.setProfile({ legalName: e.target.value }),
+        taxId: e => this.setProfile({ taxId: e.target.value }),
+        address: e => this.setProfile({ address: e.target.value }),
+        postal: e => this.setProfile({ postal: e.target.value }),
+        phone: e => this.setProfile({ phone: e.target.value }),
+        email: e => this.setProfile({ email: e.target.value }),
+        website: e => this.setProfile({ website: e.target.value })
+      },
+      items,
+      addItem: () => this.setState(st => ({ inv: { ...st.inv, items: [...st.inv.items, { desc: "", qty: "1", rate: "0" }] }, saved: false })),
+      totals: {
+        subtotal: this.fmt(subtotal), taxAmount: this.fmt(taxAmount),
+        total: this.fmt(subtotal + taxAmount), balance: this.fmt(subtotal + taxAmount),
+        fxLabel: "1 USD = " + rate + " " + s.currency,
+        fxValue: "$" + (subtotal + taxAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " USD",
+        fxRateLine: "1 USD = " + rate + " " + s.currency,
+        fxDateLine: "fetched 2026-08-12 09:00 UTC"
+      },
+      timeline: timelineDefs.map(d => ({ icon: d.icon, label: d.label, date: d.date, color: d.done ? "var(--foreground)" : "var(--muted-foreground)" })),
+      saveState: s.saved ? t.saved : "unsaved changes",
+      onClientPick: e => { const c = clientById(e.target.value); this.set({ clientId: c.id, billTo: c.name + "\n" + c.address, number: invNumber(c.id, s.seq) }); },
+      onBillTo: e => this.set({ billTo: e.target.value }),
+      onReference: e => this.set({ reference: e.target.value }),
+      onIssued: e => this.set({ issued: e.target.value }),
+      onDue: e => this.set({ due: e.target.value }),
+      onNotes: e => this.set({ notes: e.target.value }),
+      onTax: e => this.set({ tax: e.target.value }),
+      onStatus: e => this.set({ status: e.target.value }),
+      save: () => this.setState({ saved: true }),
+      duplicate: () => this.setState(st => ({ seq: "015", inv: { ...st.inv, number: invNumber(st.inv.clientId, "015"), status: "draft" }, saved: false }))
+    };
+  }
+
+  updateItem(i, field, value) {
+    this.setState(st => {
+      const items = st.inv.items.map((it, j) => j === i ? { ...it, [field]: value } : it);
+      return { inv: { ...st.inv, items }, saved: false };
+    });
+  }
+}
+</script>
+</body>
+</html>
