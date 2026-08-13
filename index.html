@@ -2018,7 +2018,7 @@ async function downloadPDF() {
     // Logo
     if (profile.logo) {
       try {
-        doc.addImage(profile.logo, 'PNG', margin, y, 20, 10);
+        doc.addImage(profile.logo, 'PNG', margin, y, 9, 9);
         y += 14;
       } catch (e) {
         console.error('Error adding logo:', e);
@@ -2242,9 +2242,13 @@ async function downloadPDF() {
     drawInvoicePage(STR[lang]);
   });
 
-  // Save PDF
-  const filename = `invoice-${currentInvoice.number || 'draft'}.pdf`;
-  doc.save(filename);
+  // DEVELOPMENT ONLY: Preview in browser instead of downloading
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank'); // Or target an <iframe> on your dev page
+  // // Save PDF
+  // const filename = `invoice-${currentInvoice.number || 'draft'}.pdf`;
+  // doc.save(filename);
 
   // Auto-advance status draft → ready
   if (currentInvoice.status === 'draft') {
