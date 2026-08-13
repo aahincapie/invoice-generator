@@ -1925,6 +1925,10 @@ function removeItem(index) {
 }
 
 function updateItem(index, field, value) {
+  if (field === 'rate') {
+    const parsed = parseFloat(value);
+    value = isNaN(parsed) ? value : (Math.round(parsed * 1000) / 1000).toString();
+  }
   currentInvoice.items[index][field] = value;
   updateTotals();
 }
@@ -2151,7 +2155,7 @@ async function downloadPDF() {
         item.desc || '',
         currentCurrency,
         item.qty || '0',
-        parseFloat(item.rate || 0).toFixed(decimals),
+        parseFloat(item.rate || 0).toFixed(3),
         itemAmount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
       ];
     });
