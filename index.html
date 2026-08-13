@@ -2047,7 +2047,7 @@ async function downloadPDF() {
 
   // Draws one full invoice page in the given language, starting a new page first if needed
   const drawInvoicePage = (t) => {
-    let y = margin;
+    let y = 10;
 
     // Logo
     if (profile.logo) {
@@ -2162,7 +2162,7 @@ async function downloadPDF() {
       startY: y,
       margin: { left: margin, right: margin },
       theme: 'grid',
-      styles: { font: 'helvetica', fontSize: 9, cellPadding: 3, lineColor: [230, 230, 230], textColor: 30 },
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 2, lineColor: [230, 230, 230], textColor: 30 },
       headStyles: { fillColor: [248, 250, 252], textColor: 60, fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 'auto' },
@@ -2210,7 +2210,7 @@ async function downloadPDF() {
     y += 12;
 
     // ZONE 7 – Notes / Payment details
-    if (y > pageHeight - 60) {
+    if (y > pageHeight - 50) {
       doc.addPage();
       y = margin;
     }
@@ -2245,21 +2245,9 @@ async function downloadPDF() {
     y = Math.max(notesBottom, paymentBottom) + 10;
 
     // Signature
-    if (y > pageHeight - 40) {
-      doc.addPage();
-      y = margin;
-    }
-    const sigY = y;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(90);
-    doc.text(t.signature, margin, sigY);
-    doc.setDrawColor(180);
-    doc.line(margin, sigY + 10, margin + 60, sigY + 10);
-
     if (profile.signature) {
       try {
-        doc.addImage(profile.signature, 'PNG', pageWidth - margin - 40, sigY - 4, 35, 14);
+        doc.addImage(profile.signature, 'PNG', pageWidth - margin, sigY - 4, 35, 14);
       } catch (e) {
         console.error('Error adding signature:', e);
       }
@@ -2276,13 +2264,9 @@ async function downloadPDF() {
     drawInvoicePage(STR[lang]);
   });
 
-  // DEVELOPMENT ONLY: Preview in browser instead of downloading
-  const blob = doc.output('blob');
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank'); // Or target an <iframe> on your dev page
-  // // Save PDF
-  // const filename = `invoice-${currentInvoice.number || 'draft'}.pdf`;
-  // doc.save(filename);
+  // Save PDF
+  const filename = `invoice-${currentInvoice.number || 'draft'}.pdf`;
+  doc.save(filename);
 
   // Auto-advance status draft → ready
   if (currentInvoice.status === 'draft') {
