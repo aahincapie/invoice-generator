@@ -264,6 +264,7 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
 .items-grid { display: grid; grid-template-columns: minmax(180px, 1fr) 80px 100px 110px 110px 32px; gap: 10px; align-items: center; min-width: 620px; }
 .items-header { display: contents; }
 .items-header div { font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+#line-items-container { display: contents; }
 .item-row { display: contents; }
 .item-input { height: 32px; border: 1px solid transparent; background: transparent; transition: all 150ms; }
 .item-input:focus { border-color: var(--ring); background: var(--background); }
@@ -1188,7 +1189,6 @@ async function saveClient() {
   localStorage.setItem('clients', JSON.stringify(clients));
 
   closeClientModal();
-  await loadClients();
   renderClients();
 }
 
@@ -1305,14 +1305,40 @@ async function loadProfile() {
       signature: data.signature || ''
     };
   } else if (!error || error.code === 'PGRST116') {
-    // Create default profile
-    await supabaseClient.from('profile').insert({
-      user_id: currentUser.id,
-      trade_name: 'My Company',
-      invoice_prefix: 'INV',
-      next_sequence: 1,
-      default_terms: 30
-    });
+    // No profile row yet for this user — create the default one and use it immediately
+    const { data: created, error: insertError } = await supabaseClient
+      .from('profile')
+      .insert({
+        user_id: currentUser.id,
+        trade_name: 'My Company',
+        invoice_prefix: 'INV',
+        next_sequence: 1,
+        default_terms: 30
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error creating default profile:', insertError);
+    } else if (created) {
+      profile = {
+        tradeName: created.trade_name || '',
+        legalName: created.legal_name || '',
+        taxId: created.tax_id || '',
+        address: created.address || '',
+        postal: created.postal_code || '',
+        phone: created.phone || '',
+        email: created.email || '',
+        website: created.website || '',
+        prefix: created.invoice_prefix || 'INV',
+        nextSeq: created.next_sequence || 1,
+        defaultTerms: created.default_terms || 30,
+        logo: created.logo || '',
+        signature: created.signature || ''
+      };
+    }
+  } else {
+    console.error('Error loading profile:', error);
   }
 
   // Update settings UI
@@ -1652,13 +1678,19 @@ function updateProfile() {
   document.getElementById('pattern-prefix').textContent = profile.prefix;
   document.getElementById('pattern-seq').textContent = String(profile.nextSeq).padStart(3, '0');
 
-  // Save to Supabase or localStorage
-  saveProfile();
+  // Save to Supabase or localStorage (debounced so we don't upsert on every keystroke)
+  queueSaveProfile();
+}
+
+let saveProfileTimer = null;
+function queueSaveProfile() {
+  clearTimeout(saveProfileTimer);
+  saveProfileTimer = setTimeout(saveProfile, 500);
 }
 
 async function saveProfile() {
   if (supabaseClient && currentUser) {
-    await supabaseClient.from('profile').upsert({
+    const { error } = await supabaseClient.from('profile').upsert({
       user_id: currentUser.id,
       trade_name: profile.tradeName,
       legal_name: profile.legalName,
@@ -1673,7 +1705,9 @@ async function saveProfile() {
       default_terms: profile.defaultTerms,
       logo: profile.logo,
       signature: profile.signature
-    });
+    }, { onConflict: 'user_id' });
+
+    if (error) console.error('Error syncing profile to Supabase:', error);
   } else {
     localStorage.setItem('profile', JSON.stringify(profile));
   }
