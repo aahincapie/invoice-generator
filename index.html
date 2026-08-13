@@ -260,7 +260,8 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
 .balance-value { font-size: 20px; font-weight: 700; color: var(--primary); margin-top: 4px; }
 
 .line-items { margin-top: 30px; }
-.items-grid { display: grid; grid-template-columns: 1fr 80px 100px 110px 110px 32px; gap: 10px; align-items: center; }
+.items-grid-wrap { width: 100%; overflow-x: auto; }
+.items-grid { display: grid; grid-template-columns: minmax(180px, 1fr) 80px 100px 110px 110px 32px; gap: 10px; align-items: center; min-width: 620px; }
 .items-header { display: contents; }
 .items-header div { font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .item-row { display: contents; }
@@ -613,16 +614,18 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
 
             <!-- Line Items -->
             <div class="line-items">
-              <div class="items-grid">
-                <div class="items-header">
-                  <div data-i18n="description">description</div>
-                  <div class="right" data-i18n="qty">qty</div>
-                  <div class="right mono">currency</div>
-                  <div class="right" data-i18n="rate">rate</div>
-                  <div class="right" data-i18n="amount">amount</div>
-                  <div></div>
+              <div class="items-grid-wrap">
+                <div class="items-grid">
+                  <div class="items-header">
+                    <div data-i18n="description">description</div>
+                    <div class="right" data-i18n="qty">qty</div>
+                    <div class="right mono">currency</div>
+                    <div class="right" data-i18n="rate">rate</div>
+                    <div class="right" data-i18n="amount">amount</div>
+                    <div></div>
+                  </div>
+                  <div id="line-items-container"></div>
                 </div>
-                <div id="line-items-container"></div>
               </div>
               <button class="add-line-btn" id="add-line-btn" data-i18n="addLine">+ Line item</button>
             </div>
@@ -903,7 +906,8 @@ const STR = {
     kpiOutstanding: "Outstanding", kpiPaid: "Paid this year", kpiOverdue: "Overdue", kpiAvgDays: "Avg. days to pay",
     saved: "All changes saved", tCreated: "Created", tSent: "Sent to client", tViewed: "Viewed by client", tPaid: "Payment received", tPending: "Pending",
     outstandingNote: "across {count} invoices", numberingNote: "Your prefix, then the client code, then year and sequence. Client codes are set on each client.",
-    tradeName: "Trading name", postal: "Postal code", phone: "Phone", emailLabel: "Email", website: "Website", profileNote: "These details print in the invoice header."
+    tradeName: "Trading name", postal: "Postal code", phone: "Phone", emailLabel: "Email", website: "Website", profileNote: "These details print in the invoice header.",
+    from: "From", billTo: "Bill To", projectReference: "Project reference", balanceDue: "Balance due", notes: "Notes", paymentDetails: "Payment details"
   },
   es: {
     signInTitle: "Iniciar sesión", email: "Correo", password: "Contraseña", signIn: "Iniciar sesión", createAccount: "Crear cuenta",
@@ -921,7 +925,8 @@ const STR = {
     kpiOutstanding: "Por cobrar", kpiPaid: "Cobrado este año", kpiOverdue: "Vencido", kpiAvgDays: "Días promedio de pago",
     saved: "Cambios guardados", tCreated: "Creada", tSent: "Enviada al cliente", tViewed: "Vista por el cliente", tPaid: "Pago recibido", tPending: "Pendiente",
     outstandingNote: "en {count} facturas", numberingNote: "Tu prefijo, luego el código del cliente, después año y consecutivo. El código se define en cada cliente.",
-    tradeName: "Nombre comercial", postal: "Código postal", phone: "Teléfono", emailLabel: "Correo", website: "Sitio web", profileNote: "Estos datos se imprimen en el encabezado de la factura."
+    tradeName: "Nombre comercial", postal: "Código postal", phone: "Teléfono", emailLabel: "Correo", website: "Sitio web", profileNote: "Estos datos se imprimen en el encabezado de la factura.",
+    from: "De", billTo: "Facturar a", projectReference: "Referencia del proyecto", balanceDue: "Saldo pendiente", notes: "Notas", paymentDetails: "Datos de pago"
   },
   pt: {
     signInTitle: "Entrar", email: "E-mail", password: "Senha", signIn: "Entrar", createAccount: "Criar conta",
@@ -939,7 +944,8 @@ const STR = {
     kpiOutstanding: "A receber", kpiPaid: "Recebido no ano", kpiOverdue: "Vencido", kpiAvgDays: "Dias médios p/ pagar",
     saved: "Alterações salvas", tCreated: "Criada", tSent: "Enviada ao cliente", tViewed: "Vista pelo cliente", tPaid: "Pagamento recebido", tPending: "Pendente",
     outstandingNote: "em {count} faturas", numberingNote: "Seu prefixo, depois o código do cliente, então ano e sequência. O código é definido em cada cliente.",
-    tradeName: "Nome comercial", postal: "CEP", phone: "Telefone", emailLabel: "E-mail", website: "Site", profileNote: "Estes dados são impressos no cabeçalho da fatura."
+    tradeName: "Nome comercial", postal: "CEP", phone: "Telefone", emailLabel: "E-mail", website: "Site", profileNote: "Estes dados são impressos no cabeçalho da fatura.",
+    from: "De", billTo: "Faturar para", projectReference: "Referência do projeto", balanceDue: "Saldo devedor", notes: "Notas", paymentDetails: "Dados de pagamento"
   }
 };
 
@@ -1897,10 +1903,10 @@ function updateTotals() {
   const taxAmount = subtotal * (currentInvoice.tax / 100);
   const total = subtotal + taxAmount;
 
-  document.getElementById('subtotal').textContent = formatCurrency(subtotal, 'USD');
-  document.getElementById('tax-amount').textContent = formatCurrency(taxAmount, 'USD');
-  document.getElementById('total').textContent = formatCurrency(total, 'USD');
-  document.getElementById('balance-due').textContent = formatCurrency(total, 'USD');
+  document.getElementById('subtotal').textContent = formatCurrency(subtotal);
+  document.getElementById('tax-amount').textContent = formatCurrency(taxAmount);
+  document.getElementById('total').textContent = formatCurrency(total);
+  document.getElementById('balance-due').textContent = formatCurrency(total);
 
   // FX
   const rate = fxRates[currentCurrency];
@@ -1982,230 +1988,259 @@ async function saveInvoice() {
 async function downloadPDF() {
   if (!currentInvoice) return;
 
-  const t = STR[currentLang];
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
-  // Calculate totals
+  // Calculate totals (currency-dependent, same across every language page)
   const subtotal = currentInvoice.items.reduce((sum, it) => sum + (parseFloat(it.qty) || 0) * (parseFloat(it.rate) || 0), 0);
   const taxAmount = subtotal * (currentInvoice.tax / 100);
   const total = subtotal + taxAmount;
 
-  // Convert to selected currency
   const rate = fxRates[currentCurrency] || 1;
   const convertedSubtotal = subtotal * rate;
   const convertedTax = taxAmount * rate;
   const convertedTotal = total * rate;
   const decimals = currentCurrency === 'COP' ? 0 : 2;
   const currencySym = getCurrencySymbol(currentCurrency);
-
-  // Page config
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 20;
-  let y = margin;
-
-  // Helper function to format currency for PDF
   const formatPDFCurrency = (amount) => {
     return `${currentCurrency} ${currencySym}${amount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
   };
 
-  // Add logo if available
-  if (profile.logo) {
-    try {
-      doc.addImage(profile.logo, 'PNG', margin, y, 30, 30);
-      y += 35;
-    } catch (e) {
-      console.error('Error adding logo:', e);
+  // Page config
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+
+  // Draws one full invoice page in the given language, starting a new page first if needed
+  const drawInvoicePage = (t) => {
+    let y = margin;
+
+    // Logo
+    if (profile.logo) {
+      try {
+        doc.addImage(profile.logo, 'PNG', margin, y, 20, 10);
+        y += 14;
+      } catch (e) {
+        console.error('Error adding logo:', e);
+      }
     }
-  }
 
-  // Company header
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text(profile.tradeName || 'Company Name', margin, y);
-  y += 7;
+    // ZONE 1 – From (seller)
+    const zone1Start = y;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(130);
+    doc.text(t.from, margin, y);
+    y += 6;
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  const companyDetails = [
-    profile.address,
-    profile.postal,
-    profile.phone,
-    profile.email,
-    profile.website
-  ].filter(Boolean);
-  companyDetails.forEach(line => {
-    doc.text(line, margin, y);
-    y += 4;
-  });
+    doc.setTextColor(20);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(profile.tradeName || profile.legalName || 'Company', margin, y);
+    y += 5;
 
-  // Invoice title and number
-  y = margin;
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
-  doc.text(t.invoice, pageWidth - margin, y, { align: 'right' });
-  y += 10;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`#${currentInvoice.number}`, pageWidth - margin, y, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(90);
+    const fromLines = [profile.address, profile.postal, profile.phone, profile.email, profile.website].filter(Boolean);
+    fromLines.forEach(line => { doc.text(line, margin, y); y += 4; });
+    const zone1Bottom = y;
 
-  y = Math.max(y, margin + 50);
+    // ZONE 4 – Title & number (top right, aligned with ZONE 1's start)
+    doc.setTextColor(20);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text(t.invoice.toUpperCase(), pageWidth - margin, zone1Start + 4, { align: 'right' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`#${currentInvoice.number}`, pageWidth - margin, zone1Start + 14, { align: 'right' });
+    const zone4Bottom = zone1Start + 14 + 5;
 
-  // Divider
-  doc.setDrawColor(200);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 10;
+    y = Math.max(zone1Bottom, zone4Bottom) + 8;
 
-  // Bill To / Dates section
-  const col1X = margin;
-  const col2X = pageWidth / 2 + 10;
-  const col3X = pageWidth - 70;
+    // Divider
+    doc.setDrawColor(220);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 8;
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('[bill_to]', col1X, y);
-  doc.text('[project_reference]', col2X, y);
-  y += 5;
+    // ZONE 2/3 – Bill To / Project reference
+    const col1X = margin;
+    const col2X = pageWidth / 2 + 5;
+    const colWidth = (pageWidth / 2) - margin - 5;
+    const zone23Start = y;
 
-  doc.setFont('helvetica', 'normal');
-  const billToLines = (currentInvoice.billTo || '').split('\n');
-  billToLines.forEach((line, i) => {
-    doc.text(line, col1X, y + (i * 4));
-  });
-
-  const refLines = (currentInvoice.reference || '').split('\n');
-  refLines.forEach((line, i) => {
-    doc.text(line, col2X, y + (i * 4));
-  });
-
-  // Dates
-  doc.setFont('helvetica', 'bold');
-  doc.text(t.issued + ':', col3X, y);
-  doc.text(t.due + ':', col3X, y + 5);
-  doc.setFont('helvetica', 'normal');
-  doc.text(currentInvoice.issued || '', col3X + 25, y);
-  doc.text(currentInvoice.due || '', col3X + 25, y + 5);
-
-  y += Math.max(billToLines.length * 4, refLines.length * 4, 10) + 10;
-
-  // Line items table
-  const tableHeaders = [t.description, t.qty, 'Currency', t.rate, t.amount];
-  const tableData = currentInvoice.items.map(item => {
-    const itemAmount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0) * rate;
-    return [
-      item.desc || '',
-      item.qty || '0',
-      `${currentCurrency} ${currencySym}`,
-      parseFloat(item.rate || 0).toFixed(decimals),
-      itemAmount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
-    ];
-  });
-
-  doc.autoTable({
-    head: [tableHeaders],
-    body: tableData,
-    startY: y,
-    margin: { left: margin, right: margin },
-    theme: 'grid',
-    headStyles: {
-      fillColor: [240, 240, 240],
-      textColor: [0, 0, 0],
-      fontStyle: 'bold',
-      fontSize: 9
-    },
-    bodyStyles: {
-      fontSize: 9
-    },
-    columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: 25, halign: 'right' },
-      2: { cellWidth: 30, halign: 'center' },
-      3: { cellWidth: 30, halign: 'right' },
-      4: { cellWidth: 35, halign: 'right' }
-    }
-  });
-
-  y = doc.lastAutoTable.finalY + 10;
-
-  // Notes and Totals
-  const totalsX = pageWidth - margin - 60;
-
-  // Notes on left
-  if (currentInvoice.notes) {
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
-    doc.text('[notes]', margin, y);
+    doc.setTextColor(20);
+    doc.text(t.billTo, col1X, y);
+    doc.text(t.projectReference, col2X, y);
     y += 5;
+
     doc.setFont('helvetica', 'normal');
-    const notesLines = doc.splitTextToSize(currentInvoice.notes, pageWidth / 2 - margin);
-    doc.text(notesLines, margin, y);
-  }
+    doc.setTextColor(90);
+    const billLines = doc.splitTextToSize(currentInvoice.billTo || '', colWidth);
+    const refLines = doc.splitTextToSize(currentInvoice.reference || '', colWidth);
+    billLines.forEach((line, i) => doc.text(line, col1X, y + i * 4));
+    refLines.forEach((line, i) => doc.text(line, col2X, y + i * 4));
+    y = zone23Start + 5 + Math.max(billLines.length, refLines.length, 1) * 4 + 8;
 
-  // Totals on right
-  const totalsY = doc.lastAutoTable.finalY + 10;
-  let ty = totalsY;
+    // ZONE 5 – Dates & balance badge
+    const rightColX = pageWidth / 2 + 5;
+    doc.setFontSize(9);
+    doc.setTextColor(130);
+    doc.setFont('helvetica', 'normal');
+    doc.text(t.issued + ':', rightColX, y);
+    doc.text(currentInvoice.issued || '', pageWidth - margin, y, { align: 'right' });
+    y += 5;
+    doc.text(t.due + ':', rightColX, y);
+    doc.text(currentInvoice.due || '', pageWidth - margin, y, { align: 'right' });
+    y += 8;
 
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(t.subtotal + ':', totalsX, ty);
-  doc.text(formatPDFCurrency(convertedSubtotal), pageWidth - margin, ty, { align: 'right' });
-  ty += 6;
+    const badgeWidth = 60;
+    const badgeHeight = 12;
+    const badgeX = pageWidth - margin - badgeWidth;
+    doc.setDrawColor(225);
+    doc.setFillColor(245, 245, 245);
+    doc.roundedRect(badgeX, y, badgeWidth, badgeHeight, 2, 2, 'F');
+    doc.setTextColor(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text(t.balanceDue, badgeX + 4, y + badgeHeight / 2 + 1.5);
+    doc.text(formatPDFCurrency(convertedTotal), pageWidth - margin - 4, y + badgeHeight / 2 + 1.5, { align: 'right' });
+    y += badgeHeight + 10;
 
-  doc.text(t.tax + ` (${currentInvoice.tax}%):`, totalsX, ty);
-  doc.text(formatPDFCurrency(convertedTax), pageWidth - margin, ty, { align: 'right' });
-  ty += 6;
+    // ZONE 6 – Line items table
+    const tableHeaders = [t.description, t.currency, t.qty, t.rate, t.amount];
+    const tableData = currentInvoice.items.map(item => {
+      const itemAmount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0) * rate;
+      return [
+        item.desc || '',
+        currentCurrency,
+        item.qty || '0',
+        parseFloat(item.rate || 0).toFixed(decimals),
+        itemAmount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+      ];
+    });
 
-  doc.setDrawColor(200);
-  doc.line(totalsX, ty, pageWidth - margin, ty);
-  ty += 6;
+    doc.autoTable({
+      head: [tableHeaders],
+      body: tableData,
+      startY: y,
+      margin: { left: margin, right: margin },
+      theme: 'grid',
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 3, lineColor: [230, 230, 230], textColor: 30 },
+      headStyles: { fillColor: [248, 250, 252], textColor: 60, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 'auto' },
+        1: { cellWidth: 22, halign: 'center' },
+        2: { cellWidth: 20, halign: 'right' },
+        3: { cellWidth: 25, halign: 'right' },
+        4: { cellWidth: 30, halign: 'right' }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 8;
 
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.text(t.total + ':', totalsX, ty);
-  doc.text(formatPDFCurrency(convertedTotal), pageWidth - margin, ty, { align: 'right' });
-  ty += 8;
+    // Totals (plain, right-aligned)
+    const totalsX = pageWidth - margin - 65;
+    doc.autoTable({
+      startY: y,
+      body: [
+        [t.subtotal, formatPDFCurrency(convertedSubtotal)],
+        [`${t.tax} (${currentInvoice.tax}%)`, formatPDFCurrency(convertedTax)],
+        [t.total, formatPDFCurrency(convertedTotal)]
+      ],
+      theme: 'plain',
+      margin: { left: totalsX, right: margin },
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 1.5, textColor: 30 },
+      columnStyles: { 1: { halign: 'right' } },
+      bodyStyles: { fontStyle: 'bold' },
+      didParseCell: (data) => {
+        if (data.row.index === 2) data.cell.styles.fontSize = 11;
+      },
+      didDrawCell: (data) => {
+        if (data.row.index === 2 && data.column.index === 0) {
+          doc.setDrawColor(220);
+          doc.line(data.cell.x, data.cell.y, data.cell.x + data.cell.width + 80, data.cell.y);
+        }
+      }
+    });
+    y = doc.lastAutoTable.finalY + 4;
 
-  // FX line
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100);
-  doc.text(`1 USD = ${rate} ${currentCurrency}`, totalsX, ty);
-  doc.text(`$${total.toFixed(2)} USD`, pageWidth - margin, ty, { align: 'right' });
-  doc.setTextColor(0);
+    // FX line
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(140);
+    doc.text(`1 USD = ${rate} ${currentCurrency}`, totalsX, y);
+    doc.text(`$${total.toFixed(2)} USD`, pageWidth - margin, y, { align: 'right' });
+    doc.setTextColor(0);
+    y += 12;
 
-  y = Math.max(y + (currentInvoice.notes ? 20 : 0), ty + 10);
-
-  // Payment details and signature
-  y += 10;
-  if (y > pageHeight - 60) {
-    doc.addPage();
-    y = margin;
-  }
-
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('[payment_details]', margin, y);
-  y += 5;
-
-  doc.setFont('helvetica', 'normal');
-  const paymentLines = (currentInvoice.paymentDetails || profile.legalName || '').split('\n');
-  paymentLines.forEach((line, i) => {
-    doc.text(line, margin, y + (i * 4));
-  });
-
-  // Signature
-  const sigY = y;
-  if (profile.signature) {
-    try {
-      doc.addImage(profile.signature, 'PNG', pageWidth - margin - 60, sigY, 50, 20);
-    } catch (e) {
-      console.error('Error adding signature:', e);
+    // ZONE 7 – Notes / Payment details
+    if (y > pageHeight - 60) {
+      doc.addPage();
+      y = margin;
     }
-  }
-  doc.setFontSize(8);
-  doc.text(t.signature, pageWidth - margin - 60, sigY + 25);
-  doc.text(profile.tradeName || '', pageWidth - margin - 60, sigY + 29);
+    const colWidth7 = (pageWidth / 2) - margin - 5;
+    let notesBottom = y;
+    let paymentBottom = y;
+
+    if (currentInvoice.notes) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(20);
+      doc.text(t.notes, margin, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(90);
+      const noteLines = doc.splitTextToSize(currentInvoice.notes, colWidth7);
+      doc.text(noteLines, margin, y + 5);
+      notesBottom = y + 5 + noteLines.length * 4;
+    }
+
+    const paymentText = currentInvoice.paymentDetails || profile.legalName || '';
+    if (paymentText) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(20);
+      doc.text(t.paymentDetails, rightColX, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(90);
+      const payLines = doc.splitTextToSize(paymentText, colWidth7);
+      doc.text(payLines, rightColX, y + 5);
+      paymentBottom = y + 5 + payLines.length * 4;
+    }
+    y = Math.max(notesBottom, paymentBottom) + 10;
+
+    // Signature
+    if (y > pageHeight - 40) {
+      doc.addPage();
+      y = margin;
+    }
+    const sigY = y;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(90);
+    doc.text(t.signature, margin, sigY);
+    doc.setDrawColor(180);
+    doc.line(margin, sigY + 10, margin + 60, sigY + 10);
+
+    if (profile.signature) {
+      try {
+        doc.addImage(profile.signature, 'PNG', pageWidth - margin - 40, sigY - 4, 35, 14);
+      } catch (e) {
+        console.error('Error adding signature:', e);
+      }
+    }
+    doc.setFontSize(8);
+    doc.setTextColor(90);
+    doc.text(profile.tradeName || '', pageWidth - margin - 40, sigY + 14);
+    doc.setTextColor(0);
+  };
+
+  // One page per language: English, Español, Português
+  ['en', 'es', 'pt'].forEach((lang, i) => {
+    if (i > 0) doc.addPage();
+    drawInvoicePage(STR[lang]);
+  });
 
   // Save PDF
   const filename = `invoice-${currentInvoice.number || 'draft'}.pdf`;
