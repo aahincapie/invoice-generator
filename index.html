@@ -2015,7 +2015,7 @@ async function saveInvoice() {
 
   document.getElementById('save-status').textContent = STR[currentLang].saved;
   setTimeout(() => {
-    document.getElementById('save-status').textContent = STR[currentLang].saved;
+    document.getElementById('save-status').textContent = '';
   }, 2000);
 }
 
@@ -2244,17 +2244,17 @@ async function downloadPDF() {
     }
     y = Math.max(notesBottom, paymentBottom) + 10;
 
-    // Signature
+    // Signature (right-aligned)
     if (profile.signature) {
       try {
-        doc.addImage(profile.signature, 'PNG', pageWidth - margin, sigY - 4, 35, 14);
+        doc.addImage(profile.signature, 'PNG', pageWidth - margin - 35, y - 4, 35, 14);
       } catch (e) {
         console.error('Error adding signature:', e);
       }
     }
     doc.setFontSize(8);
     doc.setTextColor(90);
-    doc.text(profile.tradeName || '', pageWidth - margin - 40, sigY + 14);
+    doc.text(profile.tradeName || '', pageWidth - margin, y + 14, { align: 'right' });
     doc.setTextColor(0);
   };
 
