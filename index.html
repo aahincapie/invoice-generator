@@ -260,7 +260,7 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
 .balance-value { font-size: 20px; font-weight: 700; color: var(--primary); margin-top: 4px; }
 
 .line-items { margin-top: 30px; }
-.items-grid { display: grid; grid-template-columns: 1fr 90px 130px 130px 32px; gap: 10px; }
+.items-grid { display: grid; grid-template-columns: 1fr 80px 100px 110px 110px 32px; gap: 10px; align-items: center; }
 .items-header { display: contents; }
 .items-header div { font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 .item-row { display: contents; }
@@ -286,7 +286,8 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
 .fx-line { font-family: var(--font-mono); font-size: 11px; color: var(--muted-foreground); display: flex; justify-content: space-between; }
 
 .payment-sig-grid { display: grid; grid-template-columns: 1fr 260px; gap: 30px; margin-top: 28px; align-items: flex-end; }
-.payment-block { border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.7; }
+.payment-block { border: 1px solid var(--input); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.7; background: transparent; width: 100%; min-height: 80px; resize: vertical; font-family: var(--font-sans); }
+.payment-block:focus { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 20%, transparent); outline: none; }
 .payment-name { margin-bottom: 6px; }
 .payment-details { font-family: var(--font-mono); color: var(--muted-foreground); }
 .signature-area { display: flex; flex-direction: column; }
@@ -355,6 +356,17 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
 .sync-label { font-size: 13px; flex: 1; }
 .sync-provider { font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); }
 .sync-note { font-size: 12px; color: var(--muted-foreground); line-height: 1.6; }
+
+/* Client Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+.modal { background: var(--card); border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.2); max-width: 500px; width: 100%; padding: 24px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-title { font-size: 18px; font-weight: 700; }
+.modal-close { background: none; border: none; color: var(--muted-foreground); cursor: pointer; padding: 4px; }
+.modal-close:hover { color: var(--foreground); }
+.modal-close i { width: 20px; height: 20px; }
+.modal-body { display: flex; flex-direction: column; gap: 14px; }
+.modal-footer { display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end; }
   </style>
 </head>
 <body>
@@ -605,6 +617,7 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
                 <div class="items-header">
                   <div data-i18n="description">description</div>
                   <div class="right" data-i18n="qty">qty</div>
+                  <div class="right mono">currency</div>
                   <div class="right" data-i18n="rate">rate</div>
                   <div class="right" data-i18n="amount">amount</div>
                   <div></div>
@@ -649,10 +662,7 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
             <div class="payment-sig-grid">
               <div>
                 <div class="field-label">[payment_details]</div>
-                <div class="payment-block" id="payment-block">
-                  <div class="payment-name" id="display-legal-name">Legal Name</div>
-                  <div class="payment-details mono">Bank details here</div>
-                </div>
+                <textarea class="payment-block" id="payment-details" rows="5" placeholder="Payment details...&#10;Bank name&#10;Account number&#10;Routing number"></textarea>
               </div>
               <div class="signature-area">
                 <div class="signature-line">
@@ -724,6 +734,9 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
 
       <!-- Clients Screen -->
       <div id="screen-clients" class="screen-content hidden">
+        <div style="margin-bottom: 20px;">
+          <button class="cs-btn cs-btn-default" id="new-client-btn">+ New Client</button>
+        </div>
         <div class="clients-grid" id="clients-grid">
           <!-- Client cards will be rendered here -->
         </div>
@@ -833,6 +846,44 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
   </main>
 </div>
 
+<!-- Client Modal -->
+<div id="client-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">New Client</h2>
+      <button class="modal-close" id="close-client-modal">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field">
+        <label class="form-label">Client Code (3 letters)</label>
+        <input type="text" id="client-code" class="cs-input" maxlength="3" placeholder="EML" style="text-transform: uppercase;">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Client Name</label>
+        <input type="text" id="client-name" class="cs-input" placeholder="Environmental Markets Ltd">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Country</label>
+        <input type="text" id="client-country" class="cs-input" placeholder="New Zealand">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Address</label>
+        <textarea id="client-address" class="cs-textarea" rows="3" placeholder="50 Charles Crt, Lake Hawea 9382"></textarea>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Initials (for avatar)</label>
+        <input type="text" id="client-initials" class="cs-input" maxlength="2" placeholder="EM" style="text-transform: uppercase;">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="cs-btn cs-btn-outline" id="cancel-client-modal">Cancel</button>
+      <button class="cs-btn cs-btn-default" id="save-client-btn">Save Client</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ===== TRANSLATIONS =====
 const STR = {
@@ -843,7 +894,7 @@ const STR = {
     newInvoice: "New invoice", revenueTitle: "Revenue", topClients: "Top clients", invoicesTitle: "Invoices",
     searchPlaceholder: "Search number or client", allStatuses: "All statuses", draft: "Draft", ready: "Ready to send", paid: "Paid", overdue: "Overdue",
     thNumber: "number", thClient: "client", thIssued: "issued", thDue: "due", thAmount: "amount", thStatus: "status", open: "Open",
-    invoice: "Invoice", issued: "Issue date", due: "Due date", description: "description", qty: "qty", rate: "rate", amount: "amount",
+    invoice: "Invoice", issued: "Issue date", due: "Due date", description: "description", qty: "qty", currency: "currency", rate: "rate", amount: "amount",
     addLine: "+ Line item", subtotal: "Subtotal", tax: "Tax", total: "Total", signature: "Signature",
     actions: "Actions", save: "Save invoice", downloadPdf: "Download PDF", duplicate: "Duplicate", status: "Status", fxTitle: "Exchange rate",
     company: "Company profile", legalName: "Legal name", taxId: "Tax ID", address: "Address", uploadLogo: "Upload logo", uploadSignature: "Upload signature",
@@ -861,7 +912,7 @@ const STR = {
     newInvoice: "Nueva factura", revenueTitle: "Ingresos", topClients: "Principales clientes", invoicesTitle: "Facturas",
     searchPlaceholder: "Buscar número o cliente", allStatuses: "Todos los estados", draft: "Borrador", ready: "Lista para enviar", paid: "Pagada", overdue: "Vencida",
     thNumber: "número", thClient: "cliente", thIssued: "emisión", thDue: "vencimiento", thAmount: "monto", thStatus: "estado", open: "Abrir",
-    invoice: "Factura", issued: "Fecha de emisión", due: "Vencimiento", description: "descripción", qty: "cant.", rate: "tarifa", amount: "monto",
+    invoice: "Factura", issued: "Fecha de emisión", due: "Vencimiento", description: "descripción", qty: "cant.", currency: "moneda", rate: "tarifa", amount: "monto",
     addLine: "+ Línea", subtotal: "Subtotal", tax: "Impuesto", total: "Total", signature: "Firma",
     actions: "Acciones", save: "Guardar factura", downloadPdf: "Descargar PDF", duplicate: "Duplicar", status: "Estado", fxTitle: "Tasa de cambio",
     company: "Perfil de empresa", legalName: "Nombre legal", taxId: "NIT", address: "Dirección", uploadLogo: "Subir logo", uploadSignature: "Subir firma",
@@ -879,7 +930,7 @@ const STR = {
     newInvoice: "Nova fatura", revenueTitle: "Receita", topClients: "Principais clientes", invoicesTitle: "Faturas",
     searchPlaceholder: "Buscar número ou cliente", allStatuses: "Todos os status", draft: "Rascunho", ready: "Pronta para enviar", paid: "Paga", overdue: "Vencida",
     thNumber: "número", thClient: "cliente", thIssued: "emissão", thDue: "vencimento", thAmount: "valor", thStatus: "status", open: "Abrir",
-    invoice: "Fatura", issued: "Data de emissão", due: "Vencimento", description: "descrição", qty: "qtd", rate: "taxa", amount: "valor",
+    invoice: "Fatura", issued: "Data de emissão", due: "Vencimento", description: "descrição", qty: "qtd", currency: "moeda", rate: "taxa", amount: "valor",
     addLine: "+ Item", subtotal: "Subtotal", tax: "Imposto", total: "Total", signature: "Assinatura",
     actions: "Ações", save: "Salvar fatura", downloadPdf: "Baixar PDF", duplicate: "Duplicar", status: "Status", fxTitle: "Taxa de câmbio",
     company: "Perfil da empresa", legalName: "Razão social", taxId: "CNPJ/NIT", address: "Endereço", uploadLogo: "Enviar logo", uploadSignature: "Enviar assinatura",
@@ -1041,6 +1092,98 @@ function setupEventListeners() {
   // Table filters
   document.getElementById('table-search').addEventListener('input', filterInvoices);
   document.getElementById('table-filter').addEventListener('change', filterInvoices);
+
+  // Client modal
+  document.getElementById('new-client-btn').addEventListener('click', openClientModal);
+  document.getElementById('close-client-modal').addEventListener('click', closeClientModal);
+  document.getElementById('cancel-client-modal').addEventListener('click', closeClientModal);
+  document.getElementById('save-client-btn').addEventListener('click', saveClient);
+
+  // Payment details
+  document.getElementById('payment-details').addEventListener('input', (e) => {
+    if (currentInvoice) currentInvoice.paymentDetails = e.target.value;
+  });
+}
+
+function openClientModal() {
+  document.getElementById('client-modal').classList.remove('hidden');
+  document.getElementById('client-code').value = '';
+  document.getElementById('client-name').value = '';
+  document.getElementById('client-country').value = '';
+  document.getElementById('client-address').value = '';
+  document.getElementById('client-initials').value = '';
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function closeClientModal() {
+  document.getElementById('client-modal').classList.add('hidden');
+}
+
+async function saveClient() {
+  const code = document.getElementById('client-code').value.toUpperCase().trim();
+  const name = document.getElementById('client-name').value.trim();
+  const country = document.getElementById('client-country').value.trim();
+  const address = document.getElementById('client-address').value.trim();
+  const initials = document.getElementById('client-initials').value.toUpperCase().trim();
+
+  if (!code || code.length !== 3) {
+    alert('Please enter a valid 3-letter client code');
+    return;
+  }
+
+  if (!name) {
+    alert('Please enter a client name');
+    return;
+  }
+
+  // Check if code already exists
+  if (clients.find(c => c.code === code)) {
+    alert('A client with this code already exists');
+    return;
+  }
+
+  const newClient = {
+    id: Date.now(),
+    code,
+    name,
+    country,
+    address,
+    initials: initials || code.substring(0, 2),
+    billed: 0
+  };
+
+  // Save to Supabase if available
+  if (supabaseClient && currentUser) {
+    try {
+      const { data, error } = await supabaseClient.from('clients').insert({
+        user_id: currentUser.id,
+        code: newClient.code,
+        name: newClient.name,
+        country: newClient.country,
+        address: newClient.address,
+        initials: newClient.initials,
+        billed_total: 0
+      }).select().single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        alert('Saved locally but failed to sync to cloud: ' + error.message);
+      } else {
+        newClient.id = data.id;
+      }
+    } catch (err) {
+      console.error('Error saving client:', err);
+      alert('Saved locally only');
+    }
+  }
+
+  // Always save to localStorage as fallback
+  clients.push(newClient);
+  localStorage.setItem('clients', JSON.stringify(clients));
+
+  closeClientModal();
+  await loadClients();
+  renderClients();
 }
 
 async function handleSignIn() {
@@ -1116,7 +1259,12 @@ function formatCurrency(amount, currency = currentCurrency) {
   const converted = amount * rate;
   const decimals = currency === 'COP' ? 0 : 2;
   const sym = { USD: '$', EUR: '€', BRL: 'R$', COP: '$' }[currency] || '$';
-  return `${sym}${converted.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+  const formatted = converted.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: true });
+  return `${currency} ${sym}${formatted}`;
+}
+
+function getCurrencySymbol(currency = currentCurrency) {
+  return { USD: '$', EUR: '€', BRL: 'R$', COP: '$' }[currency] || '$';
 }
 
 // ===== DATA LOADING =====
@@ -1176,28 +1324,43 @@ async function loadProfile() {
 }
 
 async function loadClients() {
-  if (!supabaseClient || !currentUser) {
-    const saved = localStorage.getItem('clients');
-    if (saved) clients = JSON.parse(saved);
-    return;
-  }
+  // Load from localStorage first (always)
+  const saved = localStorage.getItem('clients');
+  if (saved) clients = JSON.parse(saved);
 
-  const { data, error } = await supabaseClient
-    .from('clients')
-    .select('*')
-    .eq('user_id', currentUser.id)
-    .order('billed_total', { ascending: false });
+  // Then try to load from Supabase if available
+  if (supabaseClient && currentUser) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('clients')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('billed_total', { ascending: false });
 
-  if (data) {
-    clients = data.map(c => ({
-      id: c.id,
-      code: c.code,
-      name: c.name,
-      country: c.country,
-      initials: c.initials,
-      address: c.address,
-      billed: c.billed_total || 0
-    }));
+      if (data && data.length > 0) {
+        // Merge: prefer Supabase data if available
+        const supabaseClients = data.map(c => ({
+          id: c.id,
+          code: c.code,
+          name: c.name,
+          country: c.country,
+          initials: c.initials,
+          address: c.address,
+          billed: c.billed_total || 0
+        }));
+
+        // Keep local-only clients and update with Supabase data
+        const localOnlyCodes = clients.filter(c => !data.find(s => s.code === c.code)).map(c => c.code);
+        const localOnly = clients.filter(c => localOnlyCodes.includes(c.code));
+        clients = [...supabaseClients, ...localOnly];
+
+        // Save merged data to localStorage
+        localStorage.setItem('clients', JSON.stringify(clients));
+      }
+    } catch (err) {
+      console.error('Error loading clients from Supabase:', err);
+      // Continue with localStorage data
+    }
   }
 }
 
@@ -1226,6 +1389,7 @@ async function loadInvoices() {
       items: inv.items || [],
       tax: inv.tax || 0,
       notes: inv.notes,
+      paymentDetails: inv.payment_details || '',
       status: computeStatus(inv),
       totalAmount: inv.total_amount || 0,
       currency: inv.fx_currency || 'USD',
@@ -1568,6 +1732,7 @@ function createNewInvoice() {
     items: [{ desc: '', qty: '1', rate: '0' }],
     tax: 0,
     notes: '',
+    paymentDetails: profile.legalName ? `${profile.legalName}\n\nBank: [Your Bank]\nAccount: [Account Number]\nRouting: [Routing Number]` : '',
     status: 'draft',
     currency: currentCurrency,
     fxRate: fxRates[currentCurrency]
@@ -1592,7 +1757,12 @@ function openInvoice(id) {
   const inv = invoices.find(i => i.id === id);
   if (!inv) return;
 
-  currentInvoice = { ...inv };
+  currentInvoice = {
+    ...inv,
+    paymentDetails: inv.paymentDetails || '',
+    currency: inv.currency || 'USD',
+    fxRate: inv.fxRate || 1
+  };
   renderInvoiceEditor();
   showScreen('editor');
 }
@@ -1639,12 +1809,12 @@ function renderInvoiceEditor() {
   document.getElementById('notes').value = currentInvoice.notes || '';
   document.getElementById('tax-percent').value = currentInvoice.tax || 0;
   document.getElementById('status-select').value = currentInvoice.status;
+  document.getElementById('payment-details').value = currentInvoice.paymentDetails || '';
 
   // Line items
   renderLineItems();
 
-  // Payment block
-  document.getElementById('display-legal-name').textContent = profile.legalName;
+  // Signer name
   document.getElementById('display-signer-name').textContent = profile.tradeName;
 
   if (profile.signature) {
@@ -1681,14 +1851,19 @@ function renderInvoiceEditor() {
 
 function renderLineItems() {
   const container = document.getElementById('line-items-container');
+  const currencySym = getCurrencySymbol(currentCurrency);
   const html = currentInvoice.items.map((item, i) => {
     const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
+    const rate = fxRates[currentCurrency] || 1;
+    const convertedAmount = amount * rate;
+    const decimals = currentCurrency === 'COP' ? 0 : 2;
     return `
       <div class="item-row">
         <input type="text" class="cs-input item-input" value="${item.desc}" oninput="updateItem(${i}, 'desc', this.value)">
         <input type="number" class="cs-input item-input mono right" value="${item.qty}" oninput="updateItem(${i}, 'qty', this.value)">
+        <div class="item-amount mono" style="padding: 8px 4px;">${currentCurrency} ${currencySym}</div>
         <input type="number" class="cs-input item-input mono right" value="${item.rate}" step="0.01" oninput="updateItem(${i}, 'rate', this.value)">
-        <div class="item-amount mono">${formatCurrency(amount, 'USD')}</div>
+        <div class="item-amount mono">${convertedAmount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</div>
         <button class="remove-btn" onclick="removeItem(${i})"><i data-lucide="x-circle"></i></button>
       </div>
     `;
@@ -1749,6 +1924,7 @@ async function saveInvoice() {
     bill_to: currentInvoice.billTo,
     reference: currentInvoice.reference,
     notes: currentInvoice.notes,
+    payment_details: currentInvoice.paymentDetails,
     tax: currentInvoice.tax,
     total_amount: total,
     items: currentInvoice.items,
@@ -1775,14 +1951,21 @@ async function saveInvoice() {
     }
   } else {
     // localStorage
+    const invoiceToSave = {
+      ...currentInvoice,
+      totalAmount: total,
+      paymentDetails: currentInvoice.paymentDetails
+    };
+
     if (!currentInvoice.id) {
       currentInvoice.id = Date.now();
-      invoices.push({ ...currentInvoice, totalAmount: total });
+      invoiceToSave.id = currentInvoice.id;
+      invoices.push(invoiceToSave);
       profile.nextSeq++;
       localStorage.setItem('profile', JSON.stringify(profile));
     } else {
       const index = invoices.findIndex(i => i.id === currentInvoice.id);
-      if (index >= 0) invoices[index] = { ...currentInvoice, totalAmount: total };
+      if (index >= 0) invoices[index] = invoiceToSave;
     }
     localStorage.setItem('invoices', JSON.stringify(invoices));
   }
@@ -1797,12 +1980,239 @@ async function saveInvoice() {
 }
 
 async function downloadPDF() {
-  // Basic PDF download (keeping existing PDF layout simple)
-  // User requested to keep existing PDF and only tidy it
-  alert('PDF download would generate here - using existing jsPDF logic');
+  if (!currentInvoice) return;
+
+  const t = STR[currentLang];
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  // Calculate totals
+  const subtotal = currentInvoice.items.reduce((sum, it) => sum + (parseFloat(it.qty) || 0) * (parseFloat(it.rate) || 0), 0);
+  const taxAmount = subtotal * (currentInvoice.tax / 100);
+  const total = subtotal + taxAmount;
+
+  // Convert to selected currency
+  const rate = fxRates[currentCurrency] || 1;
+  const convertedSubtotal = subtotal * rate;
+  const convertedTax = taxAmount * rate;
+  const convertedTotal = total * rate;
+  const decimals = currentCurrency === 'COP' ? 0 : 2;
+  const currencySym = getCurrencySymbol(currentCurrency);
+
+  // Page config
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+  let y = margin;
+
+  // Helper function to format currency for PDF
+  const formatPDFCurrency = (amount) => {
+    return `${currentCurrency} ${currencySym}${amount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+  };
+
+  // Add logo if available
+  if (profile.logo) {
+    try {
+      doc.addImage(profile.logo, 'PNG', margin, y, 30, 30);
+      y += 35;
+    } catch (e) {
+      console.error('Error adding logo:', e);
+    }
+  }
+
+  // Company header
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(profile.tradeName || 'Company Name', margin, y);
+  y += 7;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  const companyDetails = [
+    profile.address,
+    profile.postal,
+    profile.phone,
+    profile.email,
+    profile.website
+  ].filter(Boolean);
+  companyDetails.forEach(line => {
+    doc.text(line, margin, y);
+    y += 4;
+  });
+
+  // Invoice title and number
+  y = margin;
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text(t.invoice, pageWidth - margin, y, { align: 'right' });
+  y += 10;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`#${currentInvoice.number}`, pageWidth - margin, y, { align: 'right' });
+
+  y = Math.max(y, margin + 50);
+
+  // Divider
+  doc.setDrawColor(200);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 10;
+
+  // Bill To / Dates section
+  const col1X = margin;
+  const col2X = pageWidth / 2 + 10;
+  const col3X = pageWidth - 70;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('[bill_to]', col1X, y);
+  doc.text('[project_reference]', col2X, y);
+  y += 5;
+
+  doc.setFont('helvetica', 'normal');
+  const billToLines = (currentInvoice.billTo || '').split('\n');
+  billToLines.forEach((line, i) => {
+    doc.text(line, col1X, y + (i * 4));
+  });
+
+  const refLines = (currentInvoice.reference || '').split('\n');
+  refLines.forEach((line, i) => {
+    doc.text(line, col2X, y + (i * 4));
+  });
+
+  // Dates
+  doc.setFont('helvetica', 'bold');
+  doc.text(t.issued + ':', col3X, y);
+  doc.text(t.due + ':', col3X, y + 5);
+  doc.setFont('helvetica', 'normal');
+  doc.text(currentInvoice.issued || '', col3X + 25, y);
+  doc.text(currentInvoice.due || '', col3X + 25, y + 5);
+
+  y += Math.max(billToLines.length * 4, refLines.length * 4, 10) + 10;
+
+  // Line items table
+  const tableHeaders = [t.description, t.qty, 'Currency', t.rate, t.amount];
+  const tableData = currentInvoice.items.map(item => {
+    const itemAmount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0) * rate;
+    return [
+      item.desc || '',
+      item.qty || '0',
+      `${currentCurrency} ${currencySym}`,
+      parseFloat(item.rate || 0).toFixed(decimals),
+      itemAmount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
+    ];
+  });
+
+  doc.autoTable({
+    head: [tableHeaders],
+    body: tableData,
+    startY: y,
+    margin: { left: margin, right: margin },
+    theme: 'grid',
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+      fontSize: 9
+    },
+    bodyStyles: {
+      fontSize: 9
+    },
+    columnStyles: {
+      0: { cellWidth: 'auto' },
+      1: { cellWidth: 25, halign: 'right' },
+      2: { cellWidth: 30, halign: 'center' },
+      3: { cellWidth: 30, halign: 'right' },
+      4: { cellWidth: 35, halign: 'right' }
+    }
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+
+  // Notes and Totals
+  const totalsX = pageWidth - margin - 60;
+
+  // Notes on left
+  if (currentInvoice.notes) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('[notes]', margin, y);
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    const notesLines = doc.splitTextToSize(currentInvoice.notes, pageWidth / 2 - margin);
+    doc.text(notesLines, margin, y);
+  }
+
+  // Totals on right
+  const totalsY = doc.lastAutoTable.finalY + 10;
+  let ty = totalsY;
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(t.subtotal + ':', totalsX, ty);
+  doc.text(formatPDFCurrency(convertedSubtotal), pageWidth - margin, ty, { align: 'right' });
+  ty += 6;
+
+  doc.text(t.tax + ` (${currentInvoice.tax}%):`, totalsX, ty);
+  doc.text(formatPDFCurrency(convertedTax), pageWidth - margin, ty, { align: 'right' });
+  ty += 6;
+
+  doc.setDrawColor(200);
+  doc.line(totalsX, ty, pageWidth - margin, ty);
+  ty += 6;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text(t.total + ':', totalsX, ty);
+  doc.text(formatPDFCurrency(convertedTotal), pageWidth - margin, ty, { align: 'right' });
+  ty += 8;
+
+  // FX line
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100);
+  doc.text(`1 USD = ${rate} ${currentCurrency}`, totalsX, ty);
+  doc.text(`$${total.toFixed(2)} USD`, pageWidth - margin, ty, { align: 'right' });
+  doc.setTextColor(0);
+
+  y = Math.max(y + (currentInvoice.notes ? 20 : 0), ty + 10);
+
+  // Payment details and signature
+  y += 10;
+  if (y > pageHeight - 60) {
+    doc.addPage();
+    y = margin;
+  }
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('[payment_details]', margin, y);
+  y += 5;
+
+  doc.setFont('helvetica', 'normal');
+  const paymentLines = (currentInvoice.paymentDetails || profile.legalName || '').split('\n');
+  paymentLines.forEach((line, i) => {
+    doc.text(line, margin, y + (i * 4));
+  });
+
+  // Signature
+  const sigY = y;
+  if (profile.signature) {
+    try {
+      doc.addImage(profile.signature, 'PNG', pageWidth - margin - 60, sigY, 50, 20);
+    } catch (e) {
+      console.error('Error adding signature:', e);
+    }
+  }
+  doc.setFontSize(8);
+  doc.text(t.signature, pageWidth - margin - 60, sigY + 25);
+  doc.text(profile.tradeName || '', pageWidth - margin - 60, sigY + 29);
+
+  // Save PDF
+  const filename = `invoice-${currentInvoice.number || 'draft'}.pdf`;
+  doc.save(filename);
 
   // Auto-advance status draft → ready
-  if (currentInvoice && currentInvoice.status === 'draft') {
+  if (currentInvoice.status === 'draft') {
     currentInvoice.status = 'ready';
     await saveInvoice();
   }
