@@ -204,9 +204,10 @@ input, textarea, select { font-family: inherit; }
 .chart-tag { font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); }
 
 .revenue-chart { height: 180px; display: flex; align-items: flex-end; gap: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-.bar-column { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.bar-value { font-family: var(--font-mono); font-size: 9px; color: var(--muted-foreground); }
+.bar-column { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; }
+.bar-value { font-family: var(--font-mono); font-size: 9px; color: var(--muted-foreground); white-space: nowrap; }
 .bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 300ms; }
+.bar-empty { background: var(--muted); }
 .bar-primary { background: var(--primary); }
 .bar-current { background: var(--chart-3); }
 .month-labels { display: flex; gap: 14px; margin-top: 8px; }
@@ -246,7 +247,9 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
 .logo-tile img { width: 100%; height: 100%; object-fit: contain; border-radius: 10px; }
 .company-info { display: flex; flex-direction: column; gap: 4px; }
 .company-name { font-size: 15px; font-weight: 700; }
-.company-details { font-size: 12px; color: var(--muted-foreground); line-height: 1.6; }
+.company-details { font-size: 12px; color: var(--muted-foreground); line-height: 1.6; display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 1px; margin-top: 4px; }
+.company-details .cd-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.02em; color: var(--muted-foreground); opacity: .75; padding-top: 1px; }
+.company-details .cd-value { color: var(--foreground); white-space: pre-line; overflow-wrap: anywhere; }
 .invoice-header-right { text-align: right; }
 .invoice-word { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
 .invoice-number { font-family: var(--font-mono); font-size: 12px; color: var(--muted-foreground); margin-top: 4px; }
@@ -309,6 +312,11 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
 .timeline-row i { width: 14px; height: 14px; flex-shrink: 0; }
 .timeline-label { flex: 1; font-size: 12px; }
 .timeline-date { font-family: var(--font-mono); font-size: 10px; color: var(--muted-foreground); }
+.timeline-row.pending { color: var(--muted-foreground); }
+.timeline-input { width: 118px; height: 26px; padding: 0 6px; font-family: var(--font-mono); font-size: 10px; box-shadow: none; }
+.ref-picker { display: flex; gap: 6px; }
+.ref-picker .cs-select { flex: 1; height: 32px; font-size: 12px; min-width: 0; }
+.ref-picker .cs-btn { height: 32px; padding: 0 10px; font-size: 12px; }
 
 .fx-info { font-family: var(--font-mono); font-size: 11px; color: var(--muted-foreground); line-height: 1.8; }
 
@@ -519,7 +527,7 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
             <div class="chart-card">
               <div class="chart-header">
                 <div class="chart-title" data-i18n="revenueTitle">Revenue</div>
-                <div class="chart-tag">[revenue.by_month]</div>
+                <div class="chart-tag" id="revenue-chart-tag">[revenue.by_month]</div>
               </div>
               <div class="revenue-chart" id="revenue-chart"></div>
               <div class="month-labels" id="month-labels"></div>
@@ -599,7 +607,13 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
               </div>
               <div class="field-group">
                 <div class="field-label">[project_reference]</div>
-                <textarea class="cs-textarea" id="reference" rows="6" placeholder="Project description"></textarea>
+                <div class="ref-picker">
+                  <select class="cs-select" id="reference-select">
+                    <option value="" data-i18n="refPick">Saved references...</option>
+                  </select>
+                  <button type="button" class="cs-btn cs-btn-outline" id="save-reference-btn" data-i18n="refSave">Save</button>
+                </div>
+                <textarea class="cs-textarea" id="reference" rows="4" placeholder="Project description"></textarea>
               </div>
               <div class="field-group">
                 <div class="field-label" data-i18n="issued">Issue date</div>
@@ -701,25 +715,25 @@ tbody tr:hover { background: color-mix(in oklch, var(--accent) 50%, transparent)
                 <option value="overdue" data-i18n="overdue">Overdue</option>
               </select>
               <div class="timeline" id="timeline">
-                <div class="timeline-row">
+                <div class="timeline-row" id="tl-created">
                   <i data-lucide="check-circle-2"></i>
                   <span class="timeline-label" data-i18n="tCreated">Created</span>
-                  <span class="timeline-date mono-caption">--</span>
+                  <span class="timeline-date mono-caption" id="tl-created-date">--</span>
                 </div>
-                <div class="timeline-row" style="color:var(--muted-foreground);">
+                <div class="timeline-row pending" id="tl-sent">
                   <i data-lucide="send"></i>
                   <span class="timeline-label" data-i18n="tSent">Sent to client</span>
-                  <span class="timeline-date mono-caption">--</span>
+                  <input type="date" class="cs-input timeline-input" id="tl-sent-date">
                 </div>
-                <div class="timeline-row" style="color:var(--muted-foreground);">
+                <div class="timeline-row pending" id="tl-viewed">
                   <i data-lucide="eye"></i>
                   <span class="timeline-label" data-i18n="tViewed">Viewed by client</span>
-                  <span class="timeline-date mono-caption">--</span>
+                  <input type="date" class="cs-input timeline-input" id="tl-viewed-date">
                 </div>
-                <div class="timeline-row" style="color:var(--muted-foreground);">
+                <div class="timeline-row pending" id="tl-paid">
                   <i data-lucide="wallet"></i>
                   <span class="timeline-label" data-i18n="tPaid">Payment received</span>
-                  <span class="timeline-date mono-caption" data-i18n="tPending">Pending</span>
+                  <input type="date" class="cs-input timeline-input" id="tl-paid-date">
                 </div>
               </div>
             </div>
@@ -908,7 +922,9 @@ const STR = {
     saved: "All changes saved", tCreated: "Created", tSent: "Sent to client", tViewed: "Viewed by client", tPaid: "Payment received", tPending: "Pending",
     outstandingNote: "across {count} invoices", numberingNote: "Your prefix, then the client code, then year and sequence. Client codes are set on each client.",
     tradeName: "Trading name", postal: "Postal code", phone: "Phone", emailLabel: "Email", website: "Website", profileNote: "These details print in the invoice header.",
-    from: "From", billTo: "Bill To", projectReference: "Project reference", balanceDue: "Balance due", notes: "Notes", paymentDetails: "Payment details"
+    from: "From", billTo: "Bill To", projectReference: "Project reference", balanceDue: "Balance due", notes: "Notes", paymentDetails: "Payment details",
+    refPick: "Saved references...", refSave: "Save", refNoClient: "Select a client first to save a reference.",
+    cdAddress: "addr", cdPostal: "postal", cdTaxId: "tax_id", cdPhone: "phone", cdEmail: "email", cdWeb: "web"
   },
   es: {
     signInTitle: "Iniciar sesión", email: "Correo", password: "Contraseña", signIn: "Iniciar sesión", createAccount: "Crear cuenta",
@@ -927,7 +943,9 @@ const STR = {
     saved: "Cambios guardados", tCreated: "Creada", tSent: "Enviada al cliente", tViewed: "Vista por el cliente", tPaid: "Pago recibido", tPending: "Pendiente",
     outstandingNote: "en {count} facturas", numberingNote: "Tu prefijo, luego el código del cliente, después año y consecutivo. El código se define en cada cliente.",
     tradeName: "Nombre comercial", postal: "Código postal", phone: "Teléfono", emailLabel: "Correo", website: "Sitio web", profileNote: "Estos datos se imprimen en el encabezado de la factura.",
-    from: "De", billTo: "Facturar a", projectReference: "Referencia del proyecto", balanceDue: "Saldo pendiente", notes: "Notas", paymentDetails: "Datos de pago"
+    from: "De", billTo: "Facturar a", projectReference: "Referencia del proyecto", balanceDue: "Saldo pendiente", notes: "Notas", paymentDetails: "Datos de pago",
+    refPick: "Referencias guardadas...", refSave: "Guardar", refNoClient: "Selecciona un cliente para guardar la referencia.",
+    cdAddress: "dir", cdPostal: "postal", cdTaxId: "nit", cdPhone: "tel", cdEmail: "correo", cdWeb: "web"
   },
   pt: {
     signInTitle: "Entrar", email: "E-mail", password: "Senha", signIn: "Entrar", createAccount: "Criar conta",
@@ -946,7 +964,9 @@ const STR = {
     saved: "Alterações salvas", tCreated: "Criada", tSent: "Enviada ao cliente", tViewed: "Vista pelo cliente", tPaid: "Pagamento recebido", tPending: "Pendente",
     outstandingNote: "em {count} faturas", numberingNote: "Seu prefixo, depois o código do cliente, então ano e sequência. O código é definido em cada cliente.",
     tradeName: "Nome comercial", postal: "CEP", phone: "Telefone", emailLabel: "E-mail", website: "Site", profileNote: "Estes dados são impressos no cabeçalho da fatura.",
-    from: "De", billTo: "Faturar para", projectReference: "Referência do projeto", balanceDue: "Saldo devedor", notes: "Notas", paymentDetails: "Dados de pagamento"
+    from: "De", billTo: "Faturar para", projectReference: "Referência do projeto", balanceDue: "Saldo devedor", notes: "Notas", paymentDetails: "Dados de pagamento",
+    refPick: "Referências salvas...", refSave: "Salvar", refNoClient: "Selecione um cliente para salvar a referência.",
+    cdAddress: "end", cdPostal: "cep", cdTaxId: "cnpj", cdPhone: "tel", cdEmail: "e-mail", cdWeb: "site"
   }
 };
 
@@ -974,6 +994,7 @@ let profile = {
 };
 let clients = [];
 let invoices = [];
+let projectReferences = [];
 let currentInvoice = null;
 
 // ===== INIT =====
@@ -1046,7 +1067,8 @@ async function loadAppData() {
   await Promise.all([
     loadProfile(),
     loadClients(),
-    loadInvoices()
+    loadInvoices(),
+    loadProjectReferences()
   ]);
   renderDashboard();
 }
@@ -1073,6 +1095,8 @@ function setupEventListeners() {
   document.getElementById('lang-select').addEventListener('change', (e) => {
     currentLang = e.target.value;
     translateUI();
+    renderDashboard();
+    if (currentInvoice) renderInvoiceEditor();
   });
 
   document.getElementById('currency-select').addEventListener('change', (e) => {
@@ -1094,6 +1118,7 @@ function setupEventListeners() {
   // Invoice editor
   document.getElementById('save-invoice-btn').addEventListener('click', saveInvoice);
   document.getElementById('download-pdf-btn').addEventListener('click', downloadPDF);
+  document.getElementById('duplicate-btn').addEventListener('click', duplicateInvoice);
   document.getElementById('add-line-btn').addEventListener('click', addLineItem);
 
   // Table filters
@@ -1425,9 +1450,104 @@ async function loadInvoices() {
       status: computeStatus(inv),
       totalAmount: inv.total_amount || 0,
       currency: inv.fx_currency || 'USD',
-      fxRate: inv.fx_rate || 1
+      fxRate: inv.fx_rate || 1,
+      createdAt: inv.created_at ? inv.created_at.split('T')[0] : inv.invoice_date,
+      sentAt: inv.sent_at || '',
+      viewedAt: inv.viewed_at || '',
+      paidAt: inv.paid_at || ''
     }));
   }
+}
+
+async function loadProjectReferences() {
+  try {
+    projectReferences = JSON.parse(localStorage.getItem('projectReferences') || '[]');
+  } catch (err) {
+    projectReferences = [];
+  }
+
+  if (!supabaseClient || !currentUser) return;
+
+  const { data, error } = await supabaseClient
+    .from('project_references')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    // Table missing until supabase-migration-refinements.sql is run; keep local data.
+    console.warn('project_references unavailable:', error.message);
+    return;
+  }
+
+  const remote = data.map(r => ({ id: r.id, clientId: r.client_id, text: r.text, createdAt: r.created_at }));
+  const localOnly = projectReferences.filter(l => !remote.some(r => r.clientId == l.clientId && r.text === l.text));
+  projectReferences = [...remote, ...localOnly];
+  localStorage.setItem('projectReferences', JSON.stringify(projectReferences));
+}
+
+function referencesForClient(clientId) {
+  if (!clientId) return [];
+  const seen = new Set();
+  const out = [];
+  const add = (text) => {
+    const t = (text || '').trim();
+    if (t && !seen.has(t)) { seen.add(t); out.push(t); }
+  };
+  projectReferences.filter(r => r.clientId == clientId).forEach(r => add(r.text));
+  invoices
+    .filter(i => i.clientId == clientId)
+    .sort((a, b) => (b.issued || '').localeCompare(a.issued || ''))
+    .forEach(i => add(i.reference));
+  return out;
+}
+
+async function storeProjectReference(clientId, text) {
+  const t = (text || '').trim();
+  if (!clientId || !t) return false;
+  if (projectReferences.some(r => r.clientId == clientId && r.text === t)) return true;
+
+  const ref = { id: Date.now(), clientId, text: t, createdAt: new Date().toISOString() };
+
+  if (supabaseClient && currentUser) {
+    const { data, error } = await supabaseClient
+      .from('project_references')
+      .insert({ user_id: currentUser.id, client_id: clientId, text: t })
+      .select()
+      .single();
+    if (error) console.warn('Reference saved locally only:', error.message);
+    else ref.id = data.id;
+  }
+
+  projectReferences.unshift(ref);
+  localStorage.setItem('projectReferences', JSON.stringify(projectReferences));
+  return true;
+}
+
+function renderReferenceOptions() {
+  const select = document.getElementById('reference-select');
+  const refs = referencesForClient(currentInvoice?.clientId);
+  const current = (currentInvoice?.reference || '').trim();
+  select.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = STR[currentLang].refPick;
+  select.appendChild(placeholder);
+  refs.forEach((text, idx) => {
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    const firstLine = text.split('\n')[0];
+    opt.textContent = firstLine.length > 60 ? firstLine.slice(0, 57) + '...' : firstLine;
+    if (text === current) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.disabled = refs.length === 0;
+  select.onchange = (e) => {
+    if (e.target.value === '') return;
+    currentInvoice.reference = refs[Number(e.target.value)];
+    document.getElementById('reference').value = currentInvoice.reference;
+    markDirty();
+  };
 }
 
 function computeStatus(inv) {
@@ -1522,34 +1642,7 @@ function renderDashboard() {
   document.getElementById('kpi-overdue').textContent = formatCurrency(overdueTotal);
   document.getElementById('kpi-overdue-sub').textContent = `[${overdueInvs.length} late]`;
 
-  // Revenue chart (last 8 months)
-  const now = new Date();
-  const monthsData = [];
-  for (let i = 7; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const monthLabel = d.toLocaleString('en-US', { month: 'short' }).toUpperCase();
-    const total = invoices
-      .filter(inv => inv.issued && inv.issued.startsWith(monthKey))
-      .reduce((sum, inv) => sum + inv.totalAmount, 0);
-    monthsData.push({ label: monthLabel, value: total, isCurrent: i === 0 });
-  }
-
-  const maxRevenue = Math.max(...monthsData.map(m => m.value), 1);
-  const chartHTML = monthsData.map(m => {
-    const height = Math.round((m.value / maxRevenue) * 100);
-    const displayValue = m.value * fxRates[currentCurrency];
-    const valueLabel = currentCurrency === 'COP' ? Math.round(displayValue / 1000000) + 'M' : Math.round(displayValue / 1000) + 'k';
-    const barClass = m.isCurrent ? 'bar bar-current' : 'bar bar-primary';
-    return `
-      <div class="bar-column">
-        <div class="bar-value mono">${valueLabel}</div>
-        <div class="${barClass}" style="height:${height}%;"></div>
-      </div>
-    `;
-  }).join('');
-  document.getElementById('revenue-chart').innerHTML = chartHTML;
-  document.getElementById('month-labels').innerHTML = monthsData.map(m => `<div class="month-label">${m.label}</div>`).join('');
+  renderRevenueChart();
 
   // Top clients
   const clientBilled = {};
@@ -1584,6 +1677,58 @@ function renderDashboard() {
 
   // Invoices table
   renderInvoicesTable();
+}
+
+// Stored totals are USD; the chart converts each month into the display currency.
+function renderRevenueChart() {
+  const chart = document.getElementById('revenue-chart');
+  const rate = fxRates[currentCurrency] || 1;
+  const locale = { en: 'en-US', es: 'es-CO', pt: 'pt-BR' }[currentLang] || 'en-US';
+  const now = new Date();
+  const months = [];
+  for (let i = 7; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const usd = invoices
+      .filter(inv => inv.issued && inv.issued.startsWith(key))
+      .reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+    months.push({
+      label: d.toLocaleString(locale, { month: 'short' }).replace('.', '').toUpperCase(),
+      value: usd * rate,
+      isCurrent: i === 0
+    });
+  }
+
+  // Plot area = chart height minus its bottom padding, the value label and the label gap.
+  const styles = getComputedStyle(chart);
+  const chartPx = chart.clientHeight || parseFloat(styles.height) || 180;
+  const plotPx = Math.max(chartPx - parseFloat(styles.paddingBottom || 0) - 18, 40);
+  const max = Math.max(...months.map(m => m.value));
+  const compact = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 });
+  const sym = getCurrencySymbol(currentCurrency);
+
+  chart.replaceChildren(...months.map(m => {
+    const col = document.createElement('div');
+    col.className = 'bar-column';
+    const label = document.createElement('div');
+    label.className = 'bar-value';
+    label.textContent = m.value > 0 ? sym + compact.format(m.value) : '0';
+    const bar = document.createElement('div');
+    const px = max > 0 ? Math.round((m.value / max) * plotPx) : 0;
+    bar.className = 'bar ' + (m.value === 0 ? 'bar-empty' : m.isCurrent ? 'bar-current' : 'bar-primary');
+    bar.style.height = (m.value > 0 ? Math.max(px, 3) : 2) + 'px';
+    bar.title = formatCurrency(m.value / rate);
+    col.append(label, bar);
+    return col;
+  }));
+
+  document.getElementById('month-labels').replaceChildren(...months.map(m => {
+    const el = document.createElement('div');
+    el.className = 'month-label';
+    el.textContent = m.label;
+    return el;
+  }));
+  document.getElementById('revenue-chart-tag').textContent = `[revenue.by_month · ${currentCurrency}]`;
 }
 
 function renderInvoicesTable() {
@@ -1775,7 +1920,11 @@ function createNewInvoice() {
     paymentDetails: profile.legalName ? `${profile.legalName}\n\nBank: [Your Bank]\nAccount: [Account Number]\nRouting: [Routing Number]` : '',
     status: 'draft',
     currency: currentCurrency,
-    fxRate: fxRates[currentCurrency]
+    fxRate: fxRates[currentCurrency],
+    createdAt: today,
+    sentAt: '',
+    viewedAt: '',
+    paidAt: ''
   };
 
   renderInvoiceEditor();
@@ -1790,6 +1939,7 @@ function newInvoiceForClient(clientId) {
   currentInvoice.clientId = clientId;
   currentInvoice.billTo = `${client.name}\n${client.address}`;
   currentInvoice.number = generateInvoiceNumber(client.code);
+  currentInvoice.reference = referencesForClient(clientId)[0] || '';
   renderInvoiceEditor();
 }
 
@@ -1807,11 +1957,59 @@ function openInvoice(id) {
   showScreen('editor');
 }
 
-function generateInvoiceNumber(clientCode) {
+function parseSeq(number) {
+  const match = /-(\d+)$/.exec(number || '');
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+// Highest of the stored counter and every number already issued, so a stale counter can't reuse a number.
+function nextFreeSeq() {
+  const highestUsed = invoices.reduce((max, inv) => Math.max(max, parseSeq(inv.number)), 0);
+  return Math.max(profile.nextSeq || 1, highestUsed + 1);
+}
+
+function generateInvoiceNumber(clientCode, seq = nextFreeSeq()) {
   const year = new Date().getFullYear();
-  const seq = String(profile.nextSeq).padStart(3, '0');
   const code = clientCode || 'GEN';
-  return `${profile.prefix}-${code}-${year}-${seq}`;
+  return `${profile.prefix}-${code}-${year}-${String(seq).padStart(3, '0')}`;
+}
+
+function duplicateInvoice() {
+  if (!currentInvoice) return;
+
+  const seq = Math.max(nextFreeSeq(), parseSeq(currentInvoice.number) + 1);
+  const client = clients.find(c => c.id == currentInvoice.clientId);
+  const today = new Date().toISOString().split('T')[0];
+  const due = new Date();
+  due.setDate(due.getDate() + (profile.defaultTerms || 30));
+
+  currentInvoice = {
+    ...currentInvoice,
+    id: null,
+    number: generateInvoiceNumber(client?.code, seq),
+    items: currentInvoice.items.map(it => ({ ...it })),
+    status: 'draft',
+    issued: today,
+    due: due.toISOString().split('T')[0],
+    createdAt: today,
+    sentAt: '',
+    viewedAt: '',
+    paidAt: ''
+  };
+
+  renderInvoiceEditor();
+  markDirty();
+}
+
+function renderTimeline() {
+  const inv = currentInvoice;
+  document.getElementById('tl-created-date').textContent = inv.createdAt || inv.issued || '--';
+  document.getElementById('tl-sent-date').value = inv.sentAt || '';
+  document.getElementById('tl-viewed-date').value = inv.viewedAt || '';
+  document.getElementById('tl-paid-date').value = inv.paidAt || '';
+  document.getElementById('tl-sent').classList.toggle('pending', !inv.sentAt);
+  document.getElementById('tl-viewed').classList.toggle('pending', !inv.viewedAt);
+  document.getElementById('tl-paid').classList.toggle('pending', !inv.paidAt);
 }
 
 function renderInvoiceEditor() {
@@ -1819,14 +2017,7 @@ function renderInvoiceEditor() {
 
   // Company header
   document.getElementById('display-trade-name').textContent = profile.tradeName;
-  const details = [
-    profile.address,
-    profile.postal,
-    profile.phone,
-    profile.email,
-    profile.website
-  ].filter(Boolean).join('\n');
-  document.getElementById('display-company-details').textContent = details;
+  renderCompanyDetails();
 
   document.getElementById('display-invoice-number').textContent = currentInvoice.number;
 
@@ -1869,24 +2060,103 @@ function renderInvoiceEditor() {
   // Event listeners
   document.getElementById('client-select').onchange = (e) => {
     const client = clients.find(c => c.id == e.target.value);
-    if (client) {
-      currentInvoice.clientId = client.id;
-      currentInvoice.billTo = `${client.name}\n${client.address}`;
-      currentInvoice.number = generateInvoiceNumber(client.code);
-      document.getElementById('bill-to').value = currentInvoice.billTo;
-      document.getElementById('display-invoice-number').textContent = currentInvoice.number;
+    if (!client) return;
+
+    const previousRefs = referencesForClient(currentInvoice.clientId);
+    const typed = (currentInvoice.reference || '').trim();
+    currentInvoice.clientId = client.id;
+    currentInvoice.billTo = `${client.name}\n${client.address}`;
+    // An issued invoice must never be renumbered.
+    if (currentInvoice.status === 'draft') {
+      currentInvoice.number = generateInvoiceNumber(client.code, parseSeq(currentInvoice.number));
+    }
+    // Only replace the reference if it is empty or was loaded from the previous client.
+    if (!typed || previousRefs.includes(typed)) {
+      currentInvoice.reference = referencesForClient(client.id)[0] || '';
+      document.getElementById('reference').value = currentInvoice.reference;
+    }
+    document.getElementById('bill-to').value = currentInvoice.billTo;
+    document.getElementById('display-invoice-number').textContent = currentInvoice.number;
+    renderReferenceOptions();
+    markDirty();
+  };
+
+  document.getElementById('save-reference-btn').onclick = async () => {
+    if (!currentInvoice.clientId) {
+      alert(STR[currentLang].refNoClient);
+      return;
+    }
+    if (await storeProjectReference(currentInvoice.clientId, currentInvoice.reference)) {
+      renderReferenceOptions();
     }
   };
 
-  document.getElementById('bill-to').oninput = (e) => { currentInvoice.billTo = e.target.value; };
-  document.getElementById('reference').oninput = (e) => { currentInvoice.reference = e.target.value; };
-  document.getElementById('issue-date').onchange = (e) => { currentInvoice.issued = e.target.value; };
-  document.getElementById('due-date').onchange = (e) => { currentInvoice.due = e.target.value; };
-  document.getElementById('notes').oninput = (e) => { currentInvoice.notes = e.target.value; };
-  document.getElementById('tax-percent').oninput = (e) => { currentInvoice.tax = parseFloat(e.target.value) || 0; updateTotals(); };
-  document.getElementById('status-select').onchange = (e) => { currentInvoice.status = e.target.value; };
+  document.getElementById('bill-to').oninput = (e) => { currentInvoice.billTo = e.target.value; markDirty(); };
+  document.getElementById('reference').oninput = (e) => { currentInvoice.reference = e.target.value; markDirty(); };
+  document.getElementById('issue-date').onchange = (e) => { currentInvoice.issued = e.target.value; markDirty(); };
+  document.getElementById('due-date').onchange = (e) => { currentInvoice.due = e.target.value; markDirty(); };
+  document.getElementById('notes').oninput = (e) => { currentInvoice.notes = e.target.value; markDirty(); };
+  document.getElementById('tax-percent').oninput = (e) => { currentInvoice.tax = parseFloat(e.target.value) || 0; updateTotals(); markDirty(); };
+  document.getElementById('status-select').onchange = (e) => {
+    currentInvoice.status = e.target.value;
+    if (currentInvoice.status === 'paid' && !currentInvoice.paidAt) {
+      currentInvoice.paidAt = new Date().toISOString().split('T')[0];
+    }
+    renderTimeline();
+    markDirty();
+  };
+
+  const bindTimelineDate = (id, field) => {
+    document.getElementById(id).onchange = (e) => {
+      currentInvoice[field] = e.target.value;
+      if (field === 'sentAt' && e.target.value && currentInvoice.status === 'draft') currentInvoice.status = 'ready';
+      if (field === 'paidAt' && e.target.value) currentInvoice.status = 'paid';
+      document.getElementById('status-select').value = currentInvoice.status;
+      renderTimeline();
+      markDirty();
+    };
+  };
+  bindTimelineDate('tl-sent-date', 'sentAt');
+  bindTimelineDate('tl-viewed-date', 'viewedAt');
+  bindTimelineDate('tl-paid-date', 'paidAt');
+
+  renderReferenceOptions();
+  renderTimeline();
 
   if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function stripFieldPrefix(value) {
+  return (value || '')
+    .replace(/^\s*(legal address|address|direcci[oó]n|endere[cç]o|postal code|c[oó]digo postal|cep|phone|tel[eé]fono|telefone|email|e-mail|correo|website|sitio web|site|tax id|nit|cnpj)\s*:\s*/i, '')
+    .trim();
+}
+
+function renderCompanyDetails() {
+  const t = STR[currentLang];
+  const container = document.getElementById('display-company-details');
+  const rows = [
+    [t.cdAddress, stripFieldPrefix(profile.address)],
+    [t.cdPostal, stripFieldPrefix(profile.postal)],
+    [t.cdTaxId, stripFieldPrefix(profile.taxId)],
+    [t.cdPhone, stripFieldPrefix(profile.phone)],
+    [t.cdEmail, stripFieldPrefix(profile.email)],
+    [t.cdWeb, stripFieldPrefix(profile.website).replace(/^https?:\/\//i, '').replace(/\/$/, '')]
+  ].filter(([, value]) => value);
+
+  container.replaceChildren(...rows.flatMap(([label, value]) => {
+    const l = document.createElement('span');
+    l.className = 'cd-label';
+    l.textContent = label;
+    const v = document.createElement('span');
+    v.className = 'cd-value';
+    v.textContent = value;
+    return [l, v];
+  }));
+}
+
+function markDirty() {
+  document.getElementById('save-status').textContent = 'unsaved changes';
 }
 
 function renderLineItems() {
@@ -1977,21 +2247,39 @@ async function saveInvoice() {
     fx_currency: currentCurrency,
     fx_rate: fxRates[currentCurrency],
     logo: profile.logo,
-    signature: profile.signature
+    signature: profile.signature,
+    sent_at: currentInvoice.sentAt || null,
+    viewed_at: currentInvoice.viewedAt || null,
+    paid_at: currentInvoice.paidAt || null
+  };
+
+  const advanceSequence = () => {
+    profile.nextSeq = Math.max(profile.nextSeq || 1, parseSeq(currentInvoice.number) + 1);
   };
 
   if (supabaseClient && currentUser) {
     invoiceData.user_id = currentUser.id;
 
-    if (currentInvoice.id) {
-      await supabaseClient.from('invoices').update(invoiceData).eq('id', currentInvoice.id);
-    } else {
-      const { data } = await supabaseClient.from('invoices').insert(invoiceData).select().single();
-      if (data) {
-        currentInvoice.id = data.id;
-        profile.nextSeq++;
-        await saveProfile();
-      }
+    const write = (payload) => currentInvoice.id
+      ? supabaseClient.from('invoices').update(payload).eq('id', currentInvoice.id).select().single()
+      : supabaseClient.from('invoices').insert(payload).select().single();
+
+    let { data, error } = await write(invoiceData);
+    if (error && error.code === 'PGRST204') {
+      // Timeline columns missing until supabase-migration-refinements.sql is run; save the rest.
+      console.warn('Saving without timeline dates:', error.message);
+      const { sent_at, viewed_at, paid_at, ...withoutTimeline } = invoiceData;
+      ({ data, error } = await write(withoutTimeline));
+    }
+    if (error) {
+      console.error('Invoice save failed:', error);
+      alert('Could not save invoice: ' + error.message);
+      return;
+    }
+    if (!currentInvoice.id) {
+      currentInvoice.id = data.id;
+      advanceSequence();
+      await saveProfile();
     }
   } else {
     // localStorage
@@ -2005,7 +2293,7 @@ async function saveInvoice() {
       currentInvoice.id = Date.now();
       invoiceToSave.id = currentInvoice.id;
       invoices.push(invoiceToSave);
-      profile.nextSeq++;
+      advanceSequence();
       localStorage.setItem('profile', JSON.stringify(profile));
     } else {
       const index = invoices.findIndex(i => i.id === currentInvoice.id);
@@ -2014,8 +2302,10 @@ async function saveInvoice() {
     localStorage.setItem('invoices', JSON.stringify(invoices));
   }
 
+  await storeProjectReference(currentInvoice.clientId, currentInvoice.reference);
   await loadInvoices();
   renderDashboard();
+  renderReferenceOptions();
 
   document.getElementById('save-status').textContent = STR[currentLang].saved;
   setTimeout(() => {
