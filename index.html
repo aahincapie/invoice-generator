@@ -2375,110 +2375,95 @@ async function downloadPDF() {
   const decimals = currencyDecimals(cur);
   const formatPDFCurrency = (amount) => formatMoney(amount, cur);
 
-  // Page config
+  // Page config (mm). Fonts are 0.5pt below the previous layout; LINE matches 8.5pt text.
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
+  const top = 8;
+  const bottom = 10;
+  const contentWidth = pageWidth - margin * 2;
+  const LINE = 3.7;
+  const FONT = { body: 8.5, small: 7.5, fx: 6.5, name: 11.5, title: 21.5, number: 9.5, total: 10.5 };
 
-  // Draws one full invoice page in the given language, starting a new page first if needed
+  const setText = (size, style, gray) => {
+    doc.setFontSize(size);
+    doc.setFont('helvetica', style);
+    doc.setTextColor(gray);
+  };
+
+  // Draws one full invoice in the given language, continuing onto new pages only when needed
   const drawInvoicePage = (t) => {
-    let y = 10;
-
-    // Logo
+    // ZONE 1 + 4 – Seller (left) and title/number (right) share the top band
+    let textX = margin;
     if (profile.logo) {
       try {
-        doc.addImage(profile.logo, 'PNG', margin, y, 9, 9);
-        y += 14;
+        doc.addImage(profile.logo, 'PNG', margin, top, 9, 9);
+        textX = margin + 12;
       } catch (e) {
         console.error('Error adding logo:', e);
       }
     }
 
-    // ZONE 1 – From (seller)
-    const zone1Start = y;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(130);
-    doc.text(t.from, margin, y);
-    y += 6;
+    setText(FONT.small, 'normal', 130);
+    doc.text(t.from, textX, top + 3);
+    setText(FONT.name, 'bold', 20);
+    doc.text(profile.tradeName || profile.legalName || 'Company', textX, top + 8);
 
-    doc.setTextColor(20);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text(profile.tradeName || profile.legalName || 'Company', margin, y);
-    y += 5;
+    setText(FONT.title, 'bold', 20);
+    doc.text(t.invoice.toUpperCase(), pageWidth - margin, top + 7, { align: 'right' });
+    setText(FONT.number, 'normal', 20);
+    doc.text(`#${currentInvoice.number}`, pageWidth - margin, top + 12.5, { align: 'right' });
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(90);
-    const fromLines = [profile.address, profile.postal, profile.phone, profile.email, profile.website].filter(Boolean);
-    fromLines.forEach(line => { doc.text(line, margin, y); y += 4; });
-    const zone1Bottom = y;
+    setText(FONT.body, 'normal', 90);
+    let y = top + 12.5;
+    [profile.address, profile.postal, profile.phone, profile.email, profile.website]
+      .filter(Boolean)
+      .flatMap(line => doc.splitTextToSize(line, contentWidth - 70))
+      .forEach(line => { doc.text(line, margin, y); y += LINE; });
 
-    // ZONE 4 – Title & number (top right, aligned with ZONE 1's start)
-    doc.setTextColor(20);
-    doc.setFontSize(22);
-    doc.setFont('helvetica', 'bold');
-    doc.text(t.invoice.toUpperCase(), pageWidth - margin, zone1Start + 4, { align: 'right' });
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`#${currentInvoice.number}`, pageWidth - margin, zone1Start + 14, { align: 'right' });
-    const zone4Bottom = zone1Start + 14 + 5;
-
-    y = Math.max(zone1Bottom, zone4Bottom) + 8;
-
-    // Divider
+    y = Math.max(y, top + 14) + 1.5;
     doc.setDrawColor(220);
     doc.line(margin, y, pageWidth - margin, y);
-    y += 8;
+    y += 5;
 
-    // ZONE 2/3 – Bill To / Project reference
+    // ZONE 2/3/5 – Bill to | Project reference | Dates + balance, side by side
+    const gap = 5;
+    const datesWidth = 55;
+    const textColWidth = (contentWidth - datesWidth - gap * 2) / 2;
     const col1X = margin;
-    const col2X = pageWidth / 2 + 5;
-    const colWidth = (pageWidth / 2) - margin - 5;
-    const zone23Start = y;
+    const col2X = margin + textColWidth + gap;
+    const col3X = pageWidth - margin - datesWidth;
+    const blockTop = y;
 
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(20);
+    setText(FONT.body, 'bold', 20);
     doc.text(t.billTo, col1X, y);
     doc.text(t.projectReference, col2X, y);
-    y += 5;
+    setText(FONT.body, 'normal', 90);
+    const billLines = doc.splitTextToSize(currentInvoice.billTo || '', textColWidth);
+    const refLines = doc.splitTextToSize(currentInvoice.reference || '', textColWidth);
+    billLines.forEach((line, i) => doc.text(line, col1X, y + 4 + i * LINE));
+    refLines.forEach((line, i) => doc.text(line, col2X, y + 4 + i * LINE));
+    const textBottom = y + 4 + Math.max(billLines.length, refLines.length, 1) * LINE;
 
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(90);
-    const billLines = doc.splitTextToSize(currentInvoice.billTo || '', colWidth);
-    const refLines = doc.splitTextToSize(currentInvoice.reference || '', colWidth);
-    billLines.forEach((line, i) => doc.text(line, col1X, y + i * 4));
-    refLines.forEach((line, i) => doc.text(line, col2X, y + i * 4));
-    y = zone23Start + 5 + Math.max(billLines.length, refLines.length, 1) * 4 + 8;
-
-    // ZONE 5 – Dates & balance badge
-    const rightColX = pageWidth / 2 + 5;
-    doc.setFontSize(9);
-    doc.setTextColor(130);
-    doc.setFont('helvetica', 'normal');
-    doc.text(t.issued + ':', rightColX, y);
+    setText(FONT.body, 'normal', 130);
+    doc.text(t.issued + ':', col3X, y);
     doc.text(currentInvoice.issued || '', pageWidth - margin, y, { align: 'right' });
-    y += 5;
-    doc.text(t.due + ':', rightColX, y);
-    doc.text(currentInvoice.due || '', pageWidth - margin, y, { align: 'right' });
-    y += 8;
+    doc.text(t.due + ':', col3X, y + 4.5);
+    doc.text(currentInvoice.due || '', pageWidth - margin, y + 4.5, { align: 'right' });
 
-    const badgeWidth = 60;
-    const badgeHeight = 12;
-    const badgeX = pageWidth - margin - badgeWidth;
-    doc.setDrawColor(225);
+    // Label and amount on separate lines so long COP totals never collide with the label
+    const badgeY = y + 7.5;
+    const badgeHeight = 10.5;
     doc.setFillColor(245, 245, 245);
-    doc.roundedRect(badgeX, y, badgeWidth, badgeHeight, 2, 2, 'F');
-    doc.setTextColor(20);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
-    doc.text(t.balanceDue, badgeX + 4, y + badgeHeight / 2 + 1.5);
-    doc.text(formatPDFCurrency(total), pageWidth - margin - 4, y + badgeHeight / 2 + 1.5, { align: 'right' });
-    y += badgeHeight + 10;
+    doc.roundedRect(col3X, badgeY, datesWidth, badgeHeight, 1.5, 1.5, 'F');
+    setText(FONT.small, 'normal', 110);
+    doc.text(t.balanceDue, col3X + 3, badgeY + 3.8);
+    setText(FONT.number, 'bold', 20);
+    doc.text(formatPDFCurrency(total), pageWidth - margin - 3, badgeY + 8.3, { align: 'right' });
 
-    // ZONE 6 – Line items table
+    y = Math.max(textBottom, badgeY + badgeHeight) + 4;
+
+    // ZONE 6 – Line items: numeric columns fit their content, description takes the rest
     const tableHeaders = [t.description, t.currency, t.qty, t.rate, t.amount];
     const tableData = currentInvoice.items.map(item => {
       const itemAmount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
@@ -2486,7 +2471,7 @@ async function downloadPDF() {
         item.desc || '',
         cur,
         item.qty || '0',
-        parseFloat(item.rate || 0).toFixed(3),
+        (parseFloat(item.rate) || 0).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: 3 }),
         itemAmount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
       ];
     });
@@ -2495,22 +2480,28 @@ async function downloadPDF() {
       head: [tableHeaders],
       body: tableData,
       startY: y,
-      margin: { left: margin, right: margin },
+      margin: { left: margin, right: margin, top: top + 2, bottom },
       theme: 'grid',
-      styles: { font: 'helvetica', fontSize: 9, cellPadding: 2, lineColor: [230, 230, 230], textColor: 30 },
+      styles: { font: 'helvetica', fontSize: FONT.body, cellPadding: { top: 1.2, bottom: 1.2, left: 1.8, right: 1.8 }, lineColor: [230, 230, 230], textColor: 30, overflow: 'linebreak' },
       headStyles: { fillColor: [248, 250, 252], textColor: 60, fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 'auto' },
-        1: { cellWidth: 22, halign: 'center' },
-        2: { cellWidth: 20, halign: 'right' },
-        3: { cellWidth: 25, halign: 'right' },
-        4: { cellWidth: 30, halign: 'right' }
+        1: { cellWidth: 'wrap', halign: 'center' },
+        2: { cellWidth: 'wrap', halign: 'right' },
+        3: { cellWidth: 'wrap', halign: 'right' },
+        4: { cellWidth: 'wrap', halign: 'right' }
+      },
+      didParseCell: (data) => {
+        if (data.section === 'head' && data.column.index > 0) {
+          data.cell.styles.halign = data.column.index === 1 ? 'center' : 'right';
+        }
       }
     });
-    y = doc.lastAutoTable.finalY + 8;
+    y = doc.lastAutoTable.finalY + 3;
 
     // Totals (plain, right-aligned)
-    const totalsX = pageWidth - margin - 65;
+    const totalsWidth = 70;
+    const totalsX = pageWidth - margin - totalsWidth;
     doc.autoTable({
       startY: y,
       body: [
@@ -2519,77 +2510,67 @@ async function downloadPDF() {
         [t.total, formatPDFCurrency(total)]
       ],
       theme: 'plain',
-      margin: { left: totalsX, right: margin },
-      styles: { font: 'helvetica', fontSize: 9, cellPadding: 1.5, textColor: 30 },
+      margin: { left: totalsX, right: margin, top: top + 2, bottom },
+      tableWidth: totalsWidth,
+      styles: { font: 'helvetica', fontSize: FONT.body, cellPadding: { top: 0.8, bottom: 0.8, left: 1.5, right: 1.5 }, textColor: 30 },
       columnStyles: { 1: { halign: 'right' } },
       bodyStyles: { fontStyle: 'bold' },
       didParseCell: (data) => {
-        if (data.row.index === 2) data.cell.styles.fontSize = 11;
+        if (data.row.index === 2) data.cell.styles.fontSize = FONT.total;
       },
       didDrawCell: (data) => {
         if (data.row.index === 2 && data.column.index === 0) {
           doc.setDrawColor(220);
-          doc.line(data.cell.x, data.cell.y, data.cell.x + data.cell.width + 80, data.cell.y);
+          doc.line(data.cell.x, data.cell.y, totalsX + totalsWidth, data.cell.y);
         }
       }
     });
-    y = doc.lastAutoTable.finalY + 4;
+    y = doc.lastAutoTable.finalY + 3;
 
     // FX line
-    doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(140);
-    doc.text(`1 USD = ${formatFxRate(fxRate)} ${cur}`, totalsX, y);
+    setText(FONT.fx, 'normal', 140);
+    doc.text(`1 USD = ${formatFxRate(fxRate)} ${cur}`, totalsX + 1.5, y);
     doc.text(formatMoney(total / fxRate, 'USD'), pageWidth - margin, y, { align: 'right' });
-    doc.setTextColor(0);
-    y += 12;
+    y += 6;
 
-    // ZONE 7 – Notes / Payment details
-    if (y > pageHeight - 50) {
-      doc.addPage();
-      y = margin;
-    }
-    const colWidth7 = (pageWidth / 2) - margin - 5;
-    let notesBottom = y;
-    let paymentBottom = y;
-
-    if (currentInvoice.notes) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(20);
-      doc.text(t.notes, margin, y);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(90);
-      const noteLines = doc.splitTextToSize(currentInvoice.notes, colWidth7);
-      doc.text(noteLines, margin, y + 5);
-      notesBottom = y + 5 + noteLines.length * 4;
-    }
-
+    // ZONE 7 – Notes | Payment details, then signature. Measured first so it only breaks when it must.
+    const halfWidth = (contentWidth - 8) / 2;
+    const payX = margin + halfWidth + 8;
+    setText(FONT.body, 'normal', 90);
+    const noteLines = currentInvoice.notes ? doc.splitTextToSize(currentInvoice.notes, halfWidth) : [];
     const paymentText = currentInvoice.paymentDetails || profile.legalName || '';
-    if (paymentText) {
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(20);
-      doc.text(t.paymentDetails, rightColX, y);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(90);
-      const payLines = doc.splitTextToSize(paymentText, colWidth7);
-      doc.text(payLines, rightColX, y + 5);
-      paymentBottom = y + 5 + payLines.length * 4;
+    const payLines = paymentText ? doc.splitTextToSize(paymentText, halfWidth) : [];
+    const textBlockHeight = (noteLines.length || payLines.length) ? 4 + Math.max(noteLines.length, payLines.length) * LINE : 0;
+    const signatureHeight = 17;
+    if (y + textBlockHeight + signatureHeight > pageHeight - bottom) {
+      doc.addPage();
+      y = top + 4;
     }
-    y = Math.max(notesBottom, paymentBottom) + 10;
+
+    if (noteLines.length) {
+      setText(FONT.body, 'bold', 20);
+      doc.text(t.notes, margin, y);
+      setText(FONT.body, 'normal', 90);
+      doc.text(noteLines, margin, y + 4, { lineHeightFactor: LINE / (FONT.body * 0.3528) });
+    }
+    if (payLines.length) {
+      setText(FONT.body, 'bold', 20);
+      doc.text(t.paymentDetails, payX, y);
+      setText(FONT.body, 'normal', 90);
+      doc.text(payLines, payX, y + 4, { lineHeightFactor: LINE / (FONT.body * 0.3528) });
+    }
+    y += textBlockHeight + 2;
 
     // Signature (right-aligned)
     if (profile.signature) {
       try {
-        doc.addImage(profile.signature, 'PNG', pageWidth - margin - 35, y - 4, 35, 14);
+        doc.addImage(profile.signature, 'PNG', pageWidth - margin - 35, y, 35, 12);
       } catch (e) {
         console.error('Error adding signature:', e);
       }
     }
-    doc.setFontSize(8);
-    doc.setTextColor(90);
-    doc.text(profile.tradeName || '', pageWidth - margin, y + 14, { align: 'right' });
+    setText(FONT.small, 'normal', 90);
+    doc.text(profile.tradeName || '', pageWidth - margin, y + 15.5, { align: 'right' });
     doc.setTextColor(0);
   };
 
