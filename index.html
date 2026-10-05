@@ -1101,6 +1101,12 @@ function setupEventListeners() {
 
   document.getElementById('currency-select').addEventListener('change', (e) => {
     currentCurrency = e.target.value;
+    // A draft adopts the selected currency; issued invoices keep theirs.
+    if (currentInvoice && currentInvoice.status === 'draft' && currentInvoice.currency !== currentCurrency) {
+      currentInvoice.currency = currentCurrency;
+      currentInvoice.fxRate = fxRates[currentCurrency] || 1;
+      markDirty();
+    }
     renderDashboard();
     if (currentInvoice) renderInvoiceEditor();
   });
@@ -1285,13 +1291,38 @@ async function fetchExchangeRates() {
   }
 }
 
-function formatCurrency(amount, currency = currentCurrency) {
-  const rate = fxRates[currency] || 1;
-  const converted = amount * rate;
-  const decimals = currency === 'COP' ? 0 : 2;
-  const sym = { USD: '$', EUR: '€', BRL: 'R$', COP: '$' }[currency] || '$';
-  const formatted = converted.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: true });
-  return `${currency} ${sym}${formatted}`;
+const INVOICE_CURRENCIES = ['USD', 'EUR', 'BRL', 'COP'];
+
+function currencyDecimals(currency) {
+  return currency === 'COP' ? 0 : 2;
+}
+
+// Formats an amount that is already in `currency`; no conversion.
+function formatMoney(amount, currency) {
+  const decimals = currencyDecimals(currency);
+  const formatted = (Number(amount) || 0).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: true });
+  return `${currency} ${getCurrencySymbol(currency)}${formatted}`;
+}
+
+// Formats a USD amount in the display currency (dashboard aggregates).
+function formatCurrency(usdAmount, currency = currentCurrency) {
+  return formatMoney(usdAmount * (fxRates[currency] || 1), currency);
+}
+
+function formatFxRate(rate) {
+  return (Number(rate) || 1).toLocaleString('en-US', { maximumFractionDigits: 4 });
+}
+
+// Line amounts are qty × rate in the invoice's own currency.
+function invoiceTotals(inv) {
+  const subtotal = inv.items.reduce((sum, it) => sum + (parseFloat(it.qty) || 0) * (parseFloat(it.rate) || 0), 0);
+  const tax = subtotal * ((parseFloat(inv.tax) || 0) / 100);
+  return { subtotal, tax, total: subtotal + tax };
+}
+
+// fxRate is USD → invoice currency, captured on the invoice.
+function invoiceTotalUSD(inv) {
+  return (Number(inv.totalAmount) || 0) / (Number(inv.fxRate) || 1);
 }
 
 function getCurrencySymbol(currency = currentCurrency) {
@@ -1423,8 +1454,12 @@ async function loadClients() {
 
 async function loadInvoices() {
   if (!supabaseClient || !currentUser) {
-    const saved = localStorage.getItem('invoices');
-    if (saved) invoices = JSON.parse(saved);
+    const saved = JSON.parse(localStorage.getItem('invoices') || '[]');
+    invoices = saved.map(inv => {
+      // Invoices saved before per-invoice currency stored their amounts in USD.
+      const own = INVOICE_CURRENCIES.includes(inv.amountCurrency);
+      return { ...inv, currency: own ? inv.amountCurrency : 'USD', fxRate: own ? (inv.fxRate || fxRates[inv.amountCurrency] || 1) : 1 };
+    });
     return;
   }
 
@@ -1435,7 +1470,11 @@ async function loadInvoices() {
     .order('created_at', { ascending: false });
 
   if (data) {
-    invoices = data.map(inv => ({
+    invoices = data.map(inv => {
+      // `currency` holds a bare code only for invoices whose amounts are in that currency;
+      // older rows ('USD $' default) stored USD amounts.
+      const own = INVOICE_CURRENCIES.includes(inv.currency);
+      return {
       id: inv.id,
       number: inv.invoice_number,
       clientId: inv.client_id,
@@ -1448,14 +1487,15 @@ async function loadInvoices() {
       notes: inv.notes,
       paymentDetails: inv.payment_details || '',
       status: computeStatus(inv),
-      totalAmount: inv.total_amount || 0,
-      currency: inv.fx_currency || 'USD',
-      fxRate: inv.fx_rate || 1,
+      totalAmount: Number(inv.total_amount) || 0,
+      currency: own ? inv.currency : 'USD',
+      fxRate: own ? (Number(inv.fx_rate) || fxRates[inv.currency] || 1) : 1,
       createdAt: inv.created_at ? inv.created_at.split('T')[0] : inv.invoice_date,
       sentAt: inv.sent_at || '',
       viewedAt: inv.viewed_at || '',
       paidAt: inv.paid_at || ''
-    }));
+      };
+    });
   }
 }
 
@@ -1621,14 +1661,14 @@ function renderDashboard() {
 
   // Compute KPIs
   const outstanding = invoices.filter(i => i.status === 'ready' || i.status === 'overdue');
-  const outstandingTotal = outstanding.reduce((sum, i) => sum + i.totalAmount, 0);
+  const outstandingTotal = outstanding.reduce((sum, i) => sum + invoiceTotalUSD(i), 0);
   const outstandingCount = outstanding.length;
 
   const paidThisYear = invoices.filter(i => i.status === 'paid' && i.issued && i.issued.startsWith(new Date().getFullYear()));
-  const paidTotal = paidThisYear.reduce((sum, i) => sum + i.totalAmount, 0);
+  const paidTotal = paidThisYear.reduce((sum, i) => sum + invoiceTotalUSD(i), 0);
 
   const overdueInvs = invoices.filter(i => i.status === 'overdue');
-  const overdueTotal = overdueInvs.reduce((sum, i) => sum + i.totalAmount, 0);
+  const overdueTotal = overdueInvs.reduce((sum, i) => sum + invoiceTotalUSD(i), 0);
 
   // Update sidebar outstanding
   document.getElementById('sidebar-outstanding').textContent = formatCurrency(outstandingTotal);
@@ -1649,7 +1689,7 @@ function renderDashboard() {
   clients.forEach(c => { clientBilled[c.id] = 0; });
   invoices.forEach(inv => {
     if (inv.clientId && clientBilled[inv.clientId] !== undefined) {
-      clientBilled[inv.clientId] += inv.totalAmount;
+      clientBilled[inv.clientId] += invoiceTotalUSD(inv);
     }
   });
 
@@ -1691,7 +1731,7 @@ function renderRevenueChart() {
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const usd = invoices
       .filter(inv => inv.issued && inv.issued.startsWith(key))
-      .reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+      .reduce((sum, inv) => sum + invoiceTotalUSD(inv), 0);
     months.push({
       label: d.toLocaleString(locale, { month: 'short' }).replace('.', '').toUpperCase(),
       value: usd * rate,
@@ -1756,7 +1796,7 @@ function renderInvoicesTable() {
         <td>${clientName}</td>
         <td class="muted-cell mono">${inv.issued || '—'}</td>
         <td class="muted-cell mono">${inv.due || '—'}</td>
-        <td class="amount-cell right">${formatCurrency(inv.totalAmount)}</td>
+        <td class="amount-cell right">${formatMoney(inv.totalAmount, inv.currency)}</td>
         <td><span class="status-pill ${statusClasses[inv.status]}">${statusLabels[inv.status]}</span></td>
         <td class="right"><button class="cs-btn cs-btn-outline cs-btn-sm" onclick="openInvoice(${inv.id})">${t.open}</button></td>
       </tr>
@@ -1949,12 +1989,20 @@ function openInvoice(id) {
 
   currentInvoice = {
     ...inv,
+    items: (inv.items || []).map(it => ({ ...it })),
     paymentDetails: inv.paymentDetails || '',
     currency: inv.currency || 'USD',
     fxRate: inv.fxRate || 1
   };
+  setDisplayCurrency(currentInvoice.currency);
   renderInvoiceEditor();
   showScreen('editor');
+}
+
+function setDisplayCurrency(currency) {
+  currentCurrency = currency;
+  document.getElementById('currency-select').value = currency;
+  renderDashboard();
 }
 
 function parseSeq(number) {
@@ -1988,6 +2036,7 @@ function duplicateInvoice() {
     id: null,
     number: generateInvoiceNumber(client?.code, seq),
     items: currentInvoice.items.map(it => ({ ...it })),
+    fxRate: fxRates[currentInvoice.currency] || 1,
     status: 'draft',
     issued: today,
     due: due.toISOString().split('T')[0],
@@ -2161,19 +2210,17 @@ function markDirty() {
 
 function renderLineItems() {
   const container = document.getElementById('line-items-container');
-  const currencySym = getCurrencySymbol(currentCurrency);
+  const cur = currentInvoice.currency;
+  const decimals = currencyDecimals(cur);
   const html = currentInvoice.items.map((item, i) => {
     const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
-    const rate = fxRates[currentCurrency] || 1;
-    const convertedAmount = amount * rate;
-    const decimals = currentCurrency === 'COP' ? 0 : 2;
     return `
       <div class="item-row">
         <input type="text" class="cs-input item-input" value="${item.desc}" oninput="updateItem(${i}, 'desc', this.value)">
         <input type="number" class="cs-input item-input mono right" value="${item.qty}" oninput="updateItem(${i}, 'qty', this.value)">
-        <div class="item-amount mono" style="padding: 8px 4px;">${currentCurrency} ${currencySym}</div>
+        <div class="item-amount mono" style="padding: 8px 4px;">${cur} ${getCurrencySymbol(cur)}</div>
         <input type="number" class="cs-input item-input mono right" value="${item.rate}" step="0.01" oninput="updateItem(${i}, 'rate', this.value)">
-        <div class="item-amount mono">${convertedAmount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</div>
+        <div class="item-amount mono" id="item-amount-${i}">${amount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</div>
         <button class="remove-btn" onclick="removeItem(${i})"><i data-lucide="x-circle"></i></button>
       </div>
     `;
@@ -2199,37 +2246,37 @@ function updateItem(index, field, value) {
     const parsed = parseFloat(value);
     value = isNaN(parsed) ? value : (Math.round(parsed * 1000) / 1000).toString();
   }
-  currentInvoice.items[index][field] = value;
+  const item = currentInvoice.items[index];
+  item[field] = value;
+  const decimals = currencyDecimals(currentInvoice.currency);
+  const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
+  document.getElementById(`item-amount-${index}`).textContent =
+    amount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   updateTotals();
+  markDirty();
 }
 
 function updateTotals() {
-  const subtotal = currentInvoice.items.reduce((sum, it) => {
-    return sum + (parseFloat(it.qty) || 0) * (parseFloat(it.rate) || 0);
-  }, 0);
+  const cur = currentInvoice.currency;
+  const { subtotal, tax, total } = invoiceTotals(currentInvoice);
 
-  const taxAmount = subtotal * (currentInvoice.tax / 100);
-  const total = subtotal + taxAmount;
+  document.getElementById('subtotal').textContent = formatMoney(subtotal, cur);
+  document.getElementById('tax-amount').textContent = formatMoney(tax, cur);
+  document.getElementById('total').textContent = formatMoney(total, cur);
+  document.getElementById('balance-due').textContent = formatMoney(total, cur);
 
-  document.getElementById('subtotal').textContent = formatCurrency(subtotal);
-  document.getElementById('tax-amount').textContent = formatCurrency(taxAmount);
-  document.getElementById('total').textContent = formatCurrency(total);
-  document.getElementById('balance-due').textContent = formatCurrency(total);
-
-  // FX
-  const rate = fxRates[currentCurrency];
-  document.getElementById('fx-rate-display').textContent = `1 USD = ${rate} ${currentCurrency}`;
-  document.getElementById('fx-usd-display').textContent = `$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
-  document.getElementById('fx-rate-line').textContent = `1 USD = ${rate} ${currentCurrency}`;
+  // FX reference: the invoice's captured rate and its USD equivalent.
+  const fxLine = `1 USD = ${formatFxRate(currentInvoice.fxRate)} ${cur}`;
+  document.getElementById('fx-rate-display').textContent = fxLine;
+  document.getElementById('fx-usd-display').textContent = formatMoney(total / (currentInvoice.fxRate || 1), 'USD');
+  document.getElementById('fx-rate-line').textContent = fxLine;
   document.getElementById('fx-date-line').textContent = fxFetchedAt ? `fetched ${new Date(fxFetchedAt).toISOString().split('T')[0]} UTC` : 'fetched --';
 }
 
 async function saveInvoice() {
   if (!currentInvoice) return;
 
-  const subtotal = currentInvoice.items.reduce((sum, it) => sum + (parseFloat(it.qty) || 0) * (parseFloat(it.rate) || 0), 0);
-  const taxAmount = subtotal * (currentInvoice.tax / 100);
-  const total = subtotal + taxAmount;
+  const { total } = invoiceTotals(currentInvoice);
 
   const invoiceData = {
     invoice_number: currentInvoice.number,
@@ -2244,8 +2291,9 @@ async function saveInvoice() {
     items: currentInvoice.items,
     status: currentInvoice.status === 'ready' ? 'ready_to_send' : currentInvoice.status,
     client_id: currentInvoice.clientId,
-    fx_currency: currentCurrency,
-    fx_rate: fxRates[currentCurrency],
+    currency: currentInvoice.currency,
+    fx_currency: currentInvoice.currency,
+    fx_rate: currentInvoice.fxRate,
     logo: profile.logo,
     signature: profile.signature,
     sent_at: currentInvoice.sentAt || null,
@@ -2286,6 +2334,7 @@ async function saveInvoice() {
     const invoiceToSave = {
       ...currentInvoice,
       totalAmount: total,
+      amountCurrency: currentInvoice.currency,
       paymentDetails: currentInvoice.paymentDetails
     };
 
@@ -2320,19 +2369,11 @@ async function downloadPDF() {
   const doc = new jsPDF();
 
   // Calculate totals (currency-dependent, same across every language page)
-  const subtotal = currentInvoice.items.reduce((sum, it) => sum + (parseFloat(it.qty) || 0) * (parseFloat(it.rate) || 0), 0);
-  const taxAmount = subtotal * (currentInvoice.tax / 100);
-  const total = subtotal + taxAmount;
-
-  const rate = fxRates[currentCurrency] || 1;
-  const convertedSubtotal = subtotal * rate;
-  const convertedTax = taxAmount * rate;
-  const convertedTotal = total * rate;
-  const decimals = currentCurrency === 'COP' ? 0 : 2;
-  const currencySym = getCurrencySymbol(currentCurrency);
-  const formatPDFCurrency = (amount) => {
-    return `${currentCurrency} ${currencySym}${amount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
-  };
+  const cur = currentInvoice.currency;
+  const fxRate = currentInvoice.fxRate || 1;
+  const { subtotal, tax: taxAmount, total } = invoiceTotals(currentInvoice);
+  const decimals = currencyDecimals(cur);
+  const formatPDFCurrency = (amount) => formatMoney(amount, cur);
 
   // Page config
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -2434,16 +2475,16 @@ async function downloadPDF() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.text(t.balanceDue, badgeX + 4, y + badgeHeight / 2 + 1.5);
-    doc.text(formatPDFCurrency(convertedTotal), pageWidth - margin - 4, y + badgeHeight / 2 + 1.5, { align: 'right' });
+    doc.text(formatPDFCurrency(total), pageWidth - margin - 4, y + badgeHeight / 2 + 1.5, { align: 'right' });
     y += badgeHeight + 10;
 
     // ZONE 6 – Line items table
     const tableHeaders = [t.description, t.currency, t.qty, t.rate, t.amount];
     const tableData = currentInvoice.items.map(item => {
-      const itemAmount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0) * rate;
+      const itemAmount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
       return [
         item.desc || '',
-        currentCurrency,
+        cur,
         item.qty || '0',
         parseFloat(item.rate || 0).toFixed(3),
         itemAmount.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
@@ -2473,9 +2514,9 @@ async function downloadPDF() {
     doc.autoTable({
       startY: y,
       body: [
-        [t.subtotal, formatPDFCurrency(convertedSubtotal)],
-        [`${t.tax} (${currentInvoice.tax}%)`, formatPDFCurrency(convertedTax)],
-        [t.total, formatPDFCurrency(convertedTotal)]
+        [t.subtotal, formatPDFCurrency(subtotal)],
+        [`${t.tax} (${currentInvoice.tax}%)`, formatPDFCurrency(taxAmount)],
+        [t.total, formatPDFCurrency(total)]
       ],
       theme: 'plain',
       margin: { left: totalsX, right: margin },
@@ -2498,8 +2539,8 @@ async function downloadPDF() {
     doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(140);
-    doc.text(`1 USD = ${rate} ${currentCurrency}`, totalsX, y);
-    doc.text(`$${total.toFixed(2)} USD`, pageWidth - margin, y, { align: 'right' });
+    doc.text(`1 USD = ${formatFxRate(fxRate)} ${cur}`, totalsX, y);
+    doc.text(formatMoney(total / fxRate, 'USD'), pageWidth - margin, y, { align: 'right' });
     doc.setTextColor(0);
     y += 12;
 
